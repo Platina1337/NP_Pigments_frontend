@@ -77,7 +77,7 @@ export const useProducts = ({ filters, pageSize = 20, sort }: UseProductsOptions
       if (keyParts[10]) params.search = keyParts[10];
 
       // Используем новый endpoint /products/ для всех товаров
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/products/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/products/`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
