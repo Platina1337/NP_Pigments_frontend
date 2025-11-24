@@ -75,14 +75,6 @@ export function DynamicBreadcrumb({ product }: DynamicBreadcrumbProps) {
           // Пришли со страницы каталога товаров
           console.log('DynamicBreadcrumb: detected products page');
           items.push({ label: 'Каталог', href: '/products' });
-        } else if (referrer.includes('/perfumes') && !referrer.includes('/perfumes/')) {
-          // Пришли со страницы каталога парфюмов
-          console.log('DynamicBreadcrumb: detected perfumes page');
-          items.push({ label: 'Парфюмы', href: '/perfumes' });
-        } else if (referrer.includes('/pigments') && !referrer.includes('/pigments/')) {
-          // Пришли со страницы каталога пигментов
-          console.log('DynamicBreadcrumb: detected pigments page');
-          items.push({ label: 'Пигменты', href: '/pigments' });
         } else if (referrer.includes('/search')) {
           // Пришли со страницы поиска
           console.log('DynamicBreadcrumb: detected search page');
@@ -91,14 +83,6 @@ export function DynamicBreadcrumb({ product }: DynamicBreadcrumbProps) {
           // Пришли с фильтрованной страницы продуктов
           console.log('DynamicBreadcrumb: detected filtered products page');
           items.push({ label: 'Каталог', href: '/products' });
-        } else if (referrer.includes('/perfumes?')) {
-          // Пришли с фильтрованной страницы парфюмов
-          console.log('DynamicBreadcrumb: detected filtered perfumes page');
-          items.push({ label: 'Парфюмы', href: '/perfumes' });
-        } else if (referrer.includes('/pigments?')) {
-          // Пришли с фильтрованной страницы пигментов
-          console.log('DynamicBreadcrumb: detected filtered pigments page');
-          items.push({ label: 'Пигменты', href: '/pigments' });
         } else if (referrer === window.location.origin + '/' || referrer === window.location.origin || referrer.includes(window.location.origin + '/?') || referrer === '') {
           // Пришли с главной страницы - не добавляем промежуточные шаги
           console.log('DynamicBreadcrumb: detected home page - no intermediate steps');

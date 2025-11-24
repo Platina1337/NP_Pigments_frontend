@@ -17,23 +17,13 @@ export default function Footer() {
             <h3 className="text-lg font-semibold text-foreground mb-4 hover:text-primary transition-colors duration-300">Быстрые ссылки</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="/perfumes" className="text-foreground/60 hover:text-primary transition-colors duration-300">
-                  Парфюмы
-                </a>
-              </li>
-              <li>
-                <a href="/pigments" className="text-foreground/60 hover:text-primary transition-colors duration-300">
-                  Пигменты
+                <a href="/products" className="text-foreground/60 hover:text-primary transition-colors duration-300">
+                  Каталог
                 </a>
               </li>
               <li>
                 <a href="/brands" className="text-foreground/60 hover:text-primary transition-colors duration-300">
                   Бренды
-                </a>
-              </li>
-              <li>
-                <a href="/products" className="text-foreground/60 hover:text-primary transition-colors duration-300">
-                  Все продукты
                 </a>
               </li>
             </ul>

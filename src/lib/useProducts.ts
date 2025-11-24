@@ -76,11 +76,20 @@ export const useProducts = ({ filters, pageSize = 20, sort }: UseProductsOptions
       if (keyParts[9]) params.max_price = keyParts[9];
       if (keyParts[10]) params.search = keyParts[10];
 
-      const response = await api.perfumes.getAll(params);
-      if (response.error) {
-        throw new Error(response.error);
+      // Используем новый endpoint /products/ для всех товаров
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/products/`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      return response.data as ProductsResponse;
+
+      const data = await response.json();
+      return data;
     },
     {
       revalidateOnFocus: false,
@@ -125,19 +134,12 @@ export const useProducts = ({ filters, pageSize = 20, sort }: UseProductsOptions
 };
 
 // Хук для загрузки категорий и брендов
-export const useProductFilters = (productType?: 'perfume' | 'pigment') => {
-  const categoriesKey = productType ? `categories-${productType}` : 'categories';
-  const brandsKey = productType ? `brands-${productType}` : 'brands';
-
+export const useProductFilters = () => {
   const { data: categoriesData, error: categoriesError, isLoading: categoriesLoading } = useSWR(
-    categoriesKey,
+    'categories',
     async () => {
-      const params: Record<string, string> = {};
-      if (productType) {
-        params.category_type = productType;
-      }
-
-      const response = await api.categories.getAll(params);
+      // Загружаем все категории без фильтрации по типу
+      const response = await api.categories.getAll({});
       if (response.error) {
         throw new Error(response.error);
       }
@@ -150,14 +152,10 @@ export const useProductFilters = (productType?: 'perfume' | 'pigment') => {
   );
 
   const { data: brandsData, error: brandsError, isLoading: brandsLoading } = useSWR(
-    brandsKey,
+    'brands',
     async () => {
-      const params: Record<string, string> = {};
-      if (productType) {
-        params.product_type = productType;
-      }
-
-      const response = await api.brands.getAll(params);
+      // Загружаем все бренды без фильтрации по типу
+      const response = await api.brands.getAll({});
       if (response.error) {
         throw new Error(response.error);
       }

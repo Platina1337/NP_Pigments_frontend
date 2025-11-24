@@ -44,7 +44,7 @@ export default function ProductsPage() {
   }, [showFilters]);
 
   // Загрузка фильтров (категории и бренды)
-  const { categories, brands, isLoading: filtersLoading, error: filtersError } = useProductFilters('perfume');
+  const { categories, brands, isLoading: filtersLoading, error: filtersError } = useProductFilters();
 
   // Функция для создания breadcrumb пути
   const getBreadcrumbPath = useCallback(() => {
