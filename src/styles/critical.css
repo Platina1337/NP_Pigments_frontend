@@ -1,0 +1,270 @@
+/* ============================================
+   CRITICAL CSS NP ACADEMY - Above-the-fold
+   ============================================ */
+
+:root {
+  /* Фирменные цвета NP Academy из брендбука */
+  --background: #FFFFFF;
+  --foreground: #2D3436;
+  --primary: #3B7171;              /* Темно-бирюзовый */
+  --primary-dark: #2A4A4A;         /* Темный teal */
+  --primary-light: #6B9999;        /* Светло-бирюзовый */
+  --secondary: #E8F3F3;            /* Очень светлый бирюзовый */
+  --accent: #D4A373;               /* Золотой акцент */
+  --accent-dark: #C4935E;          /* Темный золотой */
+  --success: #27AE60;
+  --warning: #F59E0B;
+  --error: #E74C3C;
+  
+  /* Темная тема */
+  --background-dark: #0F1419;
+  --foreground-dark: #FFFFFF;
+  --secondary-dark: #1A2430;
+  
+  /* Градиенты */
+  --gradient-primary: linear-gradient(135deg, #3B7171 0%, #2A4A4A 100%);
+  --gradient-gold: linear-gradient(135deg, #D4A373 0%, #C4935E 100%);
+  --gradient-hero: linear-gradient(135deg, #3B7171 0%, #2A4A4A 50%, #6B9999 100%);
+  
+  /* Фоны */
+  --site-bg-start: #FFFFFF;
+  --site-bg-hero: var(--gradient-hero);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Century Gothic', 'Avenir', 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   ESSENTIAL LAYOUT
+   ============================================ */
+
+.min-h-screen {
+  min-height: 100vh;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.max-w-7xl {
+  max-width: 80rem;
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.py-20 {
+  padding-top: 5rem;
+  padding-bottom: 5rem;
+}
+
+/* ============================================
+   HERO SECTION CRITICAL
+   ============================================ */
+
+.relative {
+  position: relative;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.inset-0 {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.z-10 {
+  z-index: 10;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-5xl {
+  font-size: 3rem;
+  font-family: 'Rosa Marena', 'Brush Script MT', cursive;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.mb-6 {
+  margin-bottom: 1.5rem;
+}
+
+.text-white {
+  color: white;
+}
+
+.text-xl {
+  font-size: 1.25rem;
+}
+
+.text-lg {
+  font-size: 1.125rem;
+}
+
+/* ============================================
+   КНОПКИ NP ACADEMY - CRITICAL
+   ============================================ */
+
+/* Primary Button - Темно-бирюзовая */
+.btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-weight: 600;
+  font-size: 16px;
+  font-family: 'Century Gothic', sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(212, 163, 115, 0.3);
+  border-color: #D4A373;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Secondary Button - Золотая (премиум) */
+.btn-secondary {
+  background: var(--gradient-gold);
+  color: #3B7171;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-weight: 600;
+  font-size: 16px;
+  font-family: 'Century Gothic', sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 20px rgba(212, 163, 115, 0.5);
+}
+
+/* Glass Button - Призрачная */
+.btn-glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid #6B9999;
+  color: white;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-weight: 600;
+  font-size: 16px;
+  font-family: 'Century Gothic', sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-glass:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px) scale(1.02);
+}
+
+.btn-glass:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ============================================
+   GLASSMORPHISM NP ACADEMY
+   ============================================ */
+
+.glass {
+  background: rgba(232, 243, 243, 0.25);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(59, 113, 113, 0.18);
+  box-shadow: 0 8px 32px 0 rgba(59, 113, 113, 0.2);
+}
+
+/* ============================================
+   UNIFIED BACKGROUNDS
+   ============================================ */
+
+.bg-site-start {
+  background: var(--site-bg-start);
+}
+
+.bg-site-hero {
+  background: var(--site-bg-hero);
+}
+
+/* ============================================
+   ESSENTIAL ANIMATIONS
+   ============================================ */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}

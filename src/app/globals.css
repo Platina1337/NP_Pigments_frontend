@@ -1,26 +1,846 @@
 @import "tailwindcss";
 
+/* ============================================
+   ФИРМЕННЫЕ ЦВЕТА NP ACADEMY ИЗ БРЕНДБУКА
+   ============================================ */
+
+/* Основная тема (темно-зеленая) */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Основная палитра NP Academy */
+  --brand-primary: #3B7171;           /* Темно-бирюзовый основной */
+  --brand-primary-dark: #2A4A4A;      /* Темный teal */
+  --brand-primary-light: #6B9999;     /* Светло-бирюзовый */
+  --brand-primary-pale: #E8F3F3;      /* Очень светлый бирюзовый */
+  
+  /* Акцентный золотой (из брендбука) */
+  --brand-accent-gold: #D4A373;       /* Золотой */
+  --brand-accent-gold-dark: #C4935E;  /* Темный золотой */
+  
+  /* Нейтральные цвета */
+  --brand-white: #FFFFFF;
+  --brand-text-primary: #FFFFFF;      /* Темно-серый -> Белый */
+  --brand-text-secondary: #a0aec0;    /* Средне-серый -> Светло-серый */
+  --brand-border: #3B7171;            /* Светло-серый -> Темно-бирюзовый */
+  
+  /* Статусные цвета */
+  --brand-success: #27AE60;
+  --brand-error: #E74C3C;
+  --brand-info: #3498DB;
+  --brand-warning: #F59E0B;
+  
+  /* Фоны */
+  --brand-background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27100%25%27%20height%3D%27100%25%27%3E%3Cdefs%3E%3Cpattern%20id%3D%27contour%27%20patternUnits%3D%27userSpaceOnUse%27%20width%3D%27120%27%20height%3D%27120%27%20patternTransform%3D%27rotate(-30)%27%3E%3Cpath%20d%3D%27M%200,60%20Q%2030,30%2060,60%20T%20120,60%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%271.5%27%20fill%3D%27none%27%20opacity%3D%270.05%27/%3E%3Cpath%20d%3D%27M%200,80%20Q%2030,50%2060,80%20T%20120,80%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%271%27%20fill%3D%27none%27%20opacity%3D%270.04%27/%3E%3Cpath%20d%3D%27M%200,40%20Q%2030,10%2060,40%20T%20120,40%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%271%27%20fill%3D%27none%27%20opacity%3D%270.06%27/%3E%3C/pattern%3E%3C/defs%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20fill%3D%27url(%23contour)%27/%3E%3C/svg%3E"), linear-gradient(180deg, #2A4A4A 0%, #1d4d4c 100%);
+  --brand-surface: #1A2430;           /* Очень светлый бирюзовый */
+  --brand-surface-dark: #6B9999;      /* Светло-бирюзовый */
+  
+  /* Тени */
+  --shadow-sm: 0 2px 8px rgba(59, 113, 113, 0.08);
+  --shadow-md: 0 4px 12px rgba(59, 113, 113, 0.12);
+  --shadow-lg: 0 8px 24px rgba(59, 113, 113, 0.15);
+  --shadow-gold: 0 4px 12px rgba(212, 163, 115, 0.3);
+  
+  /* Скругления */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  
+  /* Переходы */
+  --transition-base: all 0.3s ease;
+  --transition-fast: all 0.2s ease;
+  
+  /* Tailwind переменные */
+  --color-background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27100%25%27%20height%3D%27100%25%27%3E%3Cdefs%3E%3Cpattern%20id%3D%27contour%27%20patternUnits%3D%27userSpaceOnUse%27%20width%3D%27120%27%20height%3D%27120%27%20patternTransform%3D%27rotate(-30)%27%3E%3Cpath%20d%3D%27M%200,60%20Q%2030,30%2060,60%20T%20120,60%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%271.5%27%20fill%3D%27none%27%20opacity%3D%270.05%27/%3E%3Cpath%20d%3D%27M%200,80%20Q%2030,50%2060,80%20T%20120,80%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%271%27%20fill%3D%27none%27%20opacity%3D%270.04%27/%3E%3Cpath%20d%3D%27M%200,40%20Q%2030,10%2060,40%20T%20120,40%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%271%27%20fill%3D%27none%27%20opacity%3D%270.06%27/%3E%3C/pattern%3E%3C/defs%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20fill%3D%27url(%23contour)%27/%3E%3C/svg%3E"), linear-gradient(180deg, #2A4A4A 0%, #1d4d4c 100%);
+  --color-foreground: #FFFFFF;
+  --color-card: #1A2430;
+  --color-secondary: #1A2430;
+  --color-border: #3B7171;
+  --color-primary: #3B7171;
+  --color-primary-foreground: #FFFFFF;
+  --color-accent: #D4A373;
+  --color-accent-foreground: #2D3436;
+  --color-ring: #3B7171;
+  
+  /* Шрифты */
+  --font-family-heading: 'Rosa Marena', 'Brush Script MT', cursive;
+  --font-family-body: 'Century Gothic', 'Avenir', 'Helvetica Neue', Arial, sans-serif;
+  
+  /* Анимации */
+  --animate-fade-in-up: fadeInUp 0.5s ease-out;
+  --animate-fade-in: fadeIn 0.3s ease-out;
+  --animate-slide-up: slideUp 0.4s ease-out;
+  --animate-float: float 3s ease-in-out infinite;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Светлая тема - Явное переопределение */
+.light {
+  color-scheme: light;
+  
+  --brand-background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27100%25%27%20height%3D%27100%25%27%3E%3Cdefs%3E%3Cpattern%20id%3D%27contour%27%20patternUnits%3D%27userSpaceOnUse%27%20width%3D%27120%27%20height%3D%27120%27%20patternTransform%3D%27rotate(-30)%27%3E%3Cpath%20d%3D%27M%200,60%20Q%2030,30%2060,60%20T%20120,60%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%271.5%27%20fill%3D%27none%27%20opacity%3D%270.05%27/%3E%3Cpath%20d%3D%27M%200,80%20Q%2030,50%2060,80%20T%20120,80%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%271%27%20fill%3D%27none%27%20opacity%3D%270.04%27/%3E%3Cpath%20d%3D%27M%200,40%20Q%2030,10%2060,40%20T%20120,40%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%271%27%20fill%3D%27none%27%20opacity%3D%270.06%27/%3E%3C/pattern%3E%3C/defs%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20fill%3D%27url(%23contour)%27/%3E%3C/svg%3E"), linear-gradient(180deg, #2A4A4A 0%, #1d4d4c 100%) !important;
+  --brand-surface: #1A2430 !important;
+  --brand-surface-dark: #6B9999 !important;
+  --brand-text: #FFFFFF !important;
+  --brand-text-secondary: #a0aec0 !important;
+  --brand-border: #3B7171 !important;
+  
+  /* Tailwind переменные */
+  --color-background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27100%25%27%20height%3D%27100%25%27%3E%3Cdefs%3E%3Cpattern%20id%3D%27contour%27%20patternUnits%3D%27userSpaceOnUse%27%20width%3D%27120%27%20height%3D%27120%27%20patternTransform%3D%27rotate(-30)%27%3E%3Cpath%20d%3D%27M%200,60%20Q%2030,30%2060,60%20T%20120,60%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%271.5%27%20fill%3D%27none%27%20opacity%3D%270.05%27/%3E%3Cpath%20d%3D%27M%200,80%20Q%2030,50%2060,80%20T%20120,80%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%271%27%20fill%3D%27none%27%20opacity%3D%270.04%27/%3E%3Cpath%20d%3D%27M%200,40%20Q%2030,10%2060,40%20T%20120,40%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%271%27%20fill%3D%27none%27%20opacity%3D%270.06%27/%3E%3C/pattern%3E%3C/defs%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20fill%3D%27url(%23contour)%27/%3E%3C/svg%3E"), linear-gradient(180deg, #2A4A4A 0%, #1d4d4c 100%) !important;
+  --color-foreground: #FFFFFF !important;
+  --color-card: #1A2430 !important;
+  --color-secondary: #1A2430 !important;
+  --color-border: #3B7171 !important;
+  
+  /* Тени для светлой темы */
+  --brand-card-shadow: rgba(59, 113, 113, 0.1) !important;
+  --brand-hover-shadow: rgba(59, 113, 113, 0.15) !important;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Темная тема NP Academy */
+.dark {
+  color-scheme: dark;
+  
+  --brand-background: #0F1419 !important;       /* Глубокий черный с синим */
+  --brand-surface: #1A2430 !important;          /* Темно-серый с синим */
+  --brand-surface-dark: #253447 !important;     /* Темный бирюзовый оттенок */
+  --brand-text: #FFFFFF !important;             /* Белый текст */
+  --brand-text-secondary: #B2BAC2 !important;   /* Светло-серый */
+  --brand-border: #3B7171 !important;           /* Темно-бирюзовый */
+  
+  /* Tailwind переменные для темной темы */
+  --color-background: #0F1419 !important;
+  --color-foreground: #FFFFFF !important;
+  --color-card: #253447 !important;
+  --color-secondary: #1A2430 !important;
+  --color-border: #3B7171 !important;
+  
+  /* Темные тени */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --brand-card-shadow: rgba(0, 0, 0, 0.2) !important;
+  --brand-hover-shadow: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ============================================
+   БАЗОВЫЕ СТИЛИ
+   ============================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--brand-background) !important;
+  color: var(--brand-text) !important;
+  font-family: 'Century Gothic', 'Avenir', 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: color 0.3s ease;
+  background-attachment: fixed;
+}
+
+/* ============================================
+   ТИПОГРАФИКА NP ACADEMY
+   ============================================ */
+
+/* Заголовочный шрифт Rosa Marena */
+.font-heading {
+  font-family: 'Rosa Marena', 'Brush Script MT', cursive;
+}
+
+/* Основной шрифт Century Gothic */
+.font-body {
+  font-family: 'Century Gothic', 'Avenir', 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Рукописные заголовки */
+.handwritten-title {
+  font-family: 'Rosa Marena', 'Brush Script MT', cursive;
+  font-weight: 400;
+  color: var(--brand-primary);
+  position: relative;
+  display: inline-block;
+}
+
+.handwritten-title::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, var(--brand-accent-gold) 50%, transparent 100%);
+}
+
+/* Иерархия заголовков */
+.prose-h1 {
+  font-size: 2.5rem;
+  font-weight: 400;
+  font-family: 'Rosa Marena', cursive;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  color: var(--brand-primary);
+}
+
+@media (min-width: 768px) {
+  .prose-h1 {
+    font-size: 3rem;
+  }
+}
+
+.prose-h2 {
+  font-size: 1.875rem;
+  font-weight: 400;
+  font-family: 'Rosa Marena', cursive;
+  line-height: 1.25;
+  color: var(--brand-primary);
+}
+
+@media (min-width: 640px) {
+  .prose-h2 {
+    font-size: 2.25rem;
+  }
+}
+
+.prose-h3 {
+  font-size: 1.5rem;
+  font-weight: 400;
+  font-family: 'Rosa Marena', cursive;
+  line-height: 1.25;
+  color: var(--brand-primary);
+}
+
+.prose-p {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.625;
+  font-family: 'Century Gothic', sans-serif;
+}
+
+/* ============================================
+   ЕДИНАЯ СИСТЕМА КНОПОК NP ACADEMY
+   ============================================ */
+
+/* Primary Button - Темно-бирюзовая */
+.btn-primary {
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%) !important;
+  color: var(--brand-white) !important;
+  border: 2px solid transparent !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 12px 32px !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  font-family: 'Century Gothic', sans-serif !important;
+  transition: var(--transition-base) !important;
+  cursor: pointer !important;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-gold) !important;
+  border-color: var(--brand-accent-gold) !important;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+/* Secondary Button - Золотая (премиум) */
+.btn-secondary {
+  background: linear-gradient(135deg, var(--brand-accent-gold) 0%, var(--brand-accent-gold-dark) 100%) !important;
+  color: var(--brand-primary) !important;
+  border: none !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 12px 32px !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  font-family: 'Century Gothic', sans-serif !important;
+  transition: var(--transition-base) !important;
+  cursor: pointer !important;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 0 20px rgba(212, 163, 115, 0.5) !important;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+/* Outline Button - Контурная */
+.btn-outline {
+  background: transparent !important;
+  color: var(--brand-primary) !important;
+  border: 2px solid var(--brand-primary) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 12px 32px !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  font-family: 'Century Gothic', sans-serif !important;
+  transition: var(--transition-base) !important;
+  cursor: pointer !important;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-outline:hover {
+  background: var(--brand-primary-pale) !important;
+}
+
+.btn-outline:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Ghost Button - Призрачная */
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: var(--brand-text) !important;
+  border: 1px solid var(--brand-primary) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 10px 24px !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  font-family: 'Century Gothic', sans-serif !important;
+  transition: var(--transition-base) !important;
+  cursor: pointer !important;
+  backdrop-filter: blur(10px);
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-ghost:hover {
+  background: rgba(212, 163, 115, 0.1) !important;
+  border-color: var(--brand-accent-gold) !important;
+}
+
+.btn-ghost:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Danger Button - Для опасных действий */
+.btn-danger {
+  background: linear-gradient(135deg, var(--brand-error) 0%, #C0392B 100%) !important;
+  color: var(--brand-white) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 12px 32px !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  font-family: 'Century Gothic', sans-serif !important;
+  transition: var(--transition-base) !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+.btn-danger:hover {
+  transform: translateY(-2px) scale(1.03) !important;
+  box-shadow: 0 0 30px rgba(231, 76, 60, 0.6) !important;
+}
+
+.btn-danger:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+/* ============================================
+   КАРТОЧКИ И КОНТЕЙНЕРЫ
+   ============================================ */
+
+/* Фирменные карточки NP Academy */
+.glass-card {
+  background: var(--brand-surface) !important;
+  border: 1px solid var(--brand-border) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-sm) !important;
+  transition: var(--transition-base) !important;
+}
+
+.glass-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md) !important;
+  border-color: var(--brand-accent-gold) !important;
+}
+
+/* Карточки товаров */
+.product-card {
+  background: var(--color-card) !important;
+  border: 1px solid var(--brand-border) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 16px;
+  box-shadow: var(--shadow-sm) !important;
+  transition: var(--transition-base) !important;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md) !important;
+  border-color: var(--brand-accent-gold) !important;
+}
+
+/* Hover эффекты для заголовков */
+.card-hover-title:hover {
+  color: var(--brand-primary) !important;
+  transition: color 0.2s ease !important;
+}
+
+/* ============================================
+   ФОРМЫ И ИНПУТЫ NP ACADEMY
+   ============================================ */
+
+input, select, textarea {
+  background: var(--color-card) !important;
+  border: 2px solid var(--brand-border) !important;
+  color: var(--brand-text) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 12px 16px;
+  font-family: 'Century Gothic', sans-serif;
+  transition: var(--transition-fast);
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--brand-primary) !important;
+  box-shadow: 0 0 0 3px rgba(59, 113, 113, 0.2) !important;
+  outline: none;
+}
+
+input::placeholder, select::placeholder, textarea::placeholder {
+  color: var(--brand-text-secondary);
+}
+
+/* Темная тема для форм */
+.dark input:focus, .dark select:focus, .dark textarea:focus {
+  border-color: var(--brand-accent-gold) !important;
+  box-shadow: 0 0 0 3px rgba(212, 163, 115, 0.2) !important;
+}
+
+/* ============================================
+   ДЕКОРАТИВНЫЕ ЭЛЕМЕНТЫ
+   ============================================ */
+
+/* Золотая звездочка */
+.decorative-star {
+  color: var(--brand-accent-gold);
+  font-size: 20px;
+  display: inline-block;
+  margin: 0 8px;
+}
+
+/* Золотой разделитель */
+.gold-divider {
+  width: 80px;
+  height: 2px;
+  background: var(--brand-accent-gold);
+  margin: 24px auto;
+}
+
+/* Неоновое свечение (бирюзовое) */
+.neon-glow {
+  box-shadow: 0 0 20px rgba(59, 113, 113, 0.6),
+              0 0 40px rgba(59, 113, 113, 0.4),
+              0 0 60px rgba(59, 113, 113, 0.2) !important;
+}
+
+/* Золотое свечение */
+.gold-glow {
+  box-shadow: 0 0 20px rgba(212, 163, 115, 0.6),
+              0 0 40px rgba(212, 163, 115, 0.4),
+              0 0 60px rgba(212, 163, 115, 0.2) !important;
+}
+
+/* ============================================
+   HEADER И FOOTER
+   ============================================ */
+
+header {
+  background: var(--brand-primary) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+}
+
+.light header {
+  background: var(--brand-primary) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================
+   АДАПТИВНЫЕ ОТСТУПЫ (Mobile First)
+   ============================================ */
+
+.section-spacing {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+@media (min-width: 640px) {
+  .section-spacing {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .section-spacing {
+    padding-top: 6rem;
+    padding-bottom: 6rem;
+  }
+}
+
+.content-spacing {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .content-spacing {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+}
+
+/* Воздух и дыхание */
+.breath-top {
+  margin-top: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .breath-top {
+    margin-top: 3rem;
+  }
+}
+
+.breath-bottom {
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .breath-bottom {
+    margin-bottom: 3rem;
+  }
+}
+
+/* ============================================
+   НОВЫЕ ПРОФЕССИОНАЛЬНЫЕ SCROLL ANIMATIONS
+   ============================================ */
+
+/* Элегантная анимация для основных блоков - плавное появление снизу */
+.scroll-visible {
+  opacity: 1 !important;
+  transform: translateY(0) translateX(0) scale(1) rotate(0deg) !important;
+  will-change: opacity, transform;
+  transition: opacity 0.8s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+}
+
+/* Плавное исчезновение вверх с размытием */
+.scroll-exiting-active {
+  opacity: 0.8 !important;
+  transform: translateY(-15px) scale(0.98) !important;
+  filter: blur(0.5px) !important;
+  will-change: opacity, transform, filter;
+  transition: all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+}
+
+/* Полное исчезновение с эффектом растворения */
+.scroll-exiting {
+  opacity: 0 !important;
+  transform: translateY(-20px) translateX(-3px) scale(0.97) rotate(-0.3deg) !important;
+  filter: blur(0.8px) !important;
+  will-change: opacity, transform, filter;
+  transition: opacity 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), filter 0.7s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+}
+
+/* Начальное скрытое состояние - подготовка к появлению */
+.scroll-hidden {
+  opacity: 0 !important;
+  transform: translateY(25px) translateX(5px) scale(0.95) rotate(0.5deg) !important;
+  filter: blur(1px) !important;
+  will-change: opacity, transform, filter;
+  transition: opacity 0.8s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1), filter 0.8s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+}
+
+/* Принудительно видимое состояние - для элементов, которые уже в viewport */
+.scroll-force-visible {
+  opacity: 1 !important;
+  transform: translateY(0) translateX(0) scale(1) rotate(0deg) !important;
+  filter: blur(0px) !important;
+  will-change: auto !important;
+  transition: none !important;
+}
+
+/* Плавная анимация для карточек - slide-in без bounce эффекта */
+.scroll-visible-cards {
+  opacity: 1 !important;
+  transform: translateY(0) translateX(0) scale(1) rotateY(0deg) !important;
+  filter: blur(0px) brightness(1) !important;
+  will-change: opacity, transform, filter;
+  transition: opacity 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), filter 0.7s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+}
+
+.scroll-exiting-cards {
+  opacity: 0 !important;
+  transform: translateY(-15px) translateX(-5px) scale(0.97) rotateY(-2deg) !important;
+  filter: blur(0.8px) brightness(0.97) !important;
+  will-change: opacity, transform, filter;
+  transition: opacity 0.6s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1), filter 0.6s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+}
+
+.scroll-hidden-cards {
+  opacity: 0 !important;
+  transform: translateY(20px) translateX(8px) scale(0.92) rotateY(3deg) !important;
+  filter: blur(1px) brightness(0.95) !important;
+  will-change: opacity, transform, filter;
+  transition: opacity 0.6s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1), filter 0.6s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+}
+
+/* Элегантная анимация для заголовков - плавное появление */
+.scroll-visible-header {
+  opacity: 1 !important;
+  transform: translateY(0) translateX(0) scale(1) rotateX(0deg) skew(0deg) !important;
+  filter: blur(0px) contrast(1) !important;
+  will-change: opacity, transform, filter;
+  transition: opacity 0.8s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1), filter 0.8s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+}
+
+.scroll-exiting-header {
+  opacity: 0 !important;
+  transform: translateY(-15px) translateX(-4px) scale(0.98) rotateX(-2deg) skew(-1deg) !important;
+  filter: blur(0.6px) contrast(0.97) !important;
+  will-change: opacity, transform, filter;
+  transition: opacity 0.6s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1), filter 0.6s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+}
+
+.scroll-hidden-header {
+  opacity: 0 !important;
+  transform: translateY(20px) translateX(5px) scale(0.96) rotateX(2deg) skew(1deg) !important;
+  filter: blur(0.8px) contrast(0.98) !important;
+  will-change: opacity, transform, filter;
+  transition: opacity 0.6s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1), filter 0.6s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+}
+
+/* Плавная анимация для статистических блоков */
+.scroll-visible-stats {
+  opacity: 1 !important;
+  transform: translateY(0) translateX(0) scale(1) rotate(0deg) !important;
+  filter: blur(0px) saturate(1) drop-shadow(0 0 0 transparent) !important;
+  will-change: opacity, transform, filter;
+  transition: opacity 0.9s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.9s cubic-bezier(0.4, 0.0, 0.2, 1), filter 0.9s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+}
+
+.scroll-exiting-stats {
+  opacity: 0 !important;
+  transform: translateY(-20px) translateX(-6px) scale(0.95) rotate(-1deg) !important;
+  filter: blur(0.8px) saturate(0.95) drop-shadow(0 0 0 transparent) !important;
+  will-change: opacity, transform, filter;
+  transition: opacity 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), filter 0.7s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+}
+
+.scroll-hidden-stats {
+  opacity: 0 !important;
+  transform: translateY(25px) translateX(8px) scale(0.9) rotate(1deg) !important;
+  filter: blur(1px) saturate(0.95) drop-shadow(0 0 0 transparent) !important;
+  will-change: opacity, transform, filter;
+  transition: opacity 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), filter 0.7s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+}
+
+/* ============================================
+   АНИМАЦИИ
+   ============================================ */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes heroFadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroFadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  60% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* ============================================
+   SCROLLBAR NP ACADEMY
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--brand-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--brand-primary);
+  border-radius: 4px;
+  border: 2px solid var(--brand-surface);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--brand-accent-gold);
+}
+
+/* ============================================
+   МОБИЛЬНАЯ ОПТИМИЗАЦИЯ
+   ============================================ */
+
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+.safe-area-padding {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.viewport-height {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* ============================================
+   ДОСТУПНОСТЬ
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .animate-float,
+  .animate-fade-in-up,
+  .animate-fade-in,
+  .animate-slide-up {
+    animation: none !important;
+  }
+  
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Touch-friendly для мобильных */
+@media (hover: none) and (pointer: coarse) {
+  .glass-card:hover,
+  .product-card:hover {
+    transform: none !important;
+  }
+  
+  .card-hover-title:hover {
+    color: inherit !important;
+  }
+}
+
+/* ============================================
+   TAILWIND @theme ПЕРЕМЕННЫЕ
+   ============================================ */
+
+@theme {
+  --color-background: var(--color-background);
+  --color-foreground: var(--color-foreground);
+  --color-card: var(--color-card);
+  --color-secondary: var(--color-secondary);
+  --color-primary: #3B7171;
+  --color-primary-foreground: #FFFFFF;
+  --color-accent: #D4A373;
+  --color-accent-foreground: #2D3436;
+  --color-border: var(--color-border);
+  --color-ring: #3B7171;
+  
+  /* Шрифты */
+  --font-family-heading: 'Rosa Marena', 'Brush Script MT', cursive;
+  --font-family-body: 'Century Gothic', 'Avenir', 'Helvetica Neue', Arial, sans-serif;
+  
+  /* Анимации */
+  --animate-fade-in-up: fadeInUp 0.5s ease-out;
+  --animate-fade-in: fadeIn 0.3s ease-out;
+  --animate-slide-up: slideUp 0.4s ease-out;
+  --animate-float: float 3s ease-in-out infinite;
 }

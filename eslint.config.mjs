@@ -20,6 +20,17 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
+  {
+    files: ["**/*.css"],
+    rules: {
+      "css/no-unknown-at-rules": [
+        "error",
+        {
+          ignoreAtRules: ["tailwind", "apply", "variants", "responsive", "screen"],
+        },
+      ],
+    },
+  },
 ];
 
 export default eslintConfig;
