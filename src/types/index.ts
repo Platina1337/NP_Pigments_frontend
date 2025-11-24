@@ -50,6 +50,40 @@ export interface PerfumeListItem {
   image: string | null;
 }
 
+// Упрощенный тип для списка пигментов
+export interface PigmentListItem {
+  id: number;
+  name: string;
+  brand_name: string;
+  category_name: string;
+  price: string;
+  weight_gr: number;
+  color_type: 'powder' | 'liquid' | 'paste';
+  application_type: 'cosmetics' | 'art' | 'industrial' | 'food';
+  in_stock: boolean;
+  image: string | null;
+}
+
+// Универсальный тип для объединенного списка продуктов
+export interface ProductListItem {
+  id: string; // Уникальный id с префиксом (perfume_123, pigment_456)
+  original_id: number; // Оригинальный id для API запросов
+  name: string;
+  brand_name: string;
+  category_name: string;
+  price: number;
+  in_stock: boolean;
+  image?: string;
+  product_type: 'perfume' | 'pigment';
+  // Поля для парфюмов
+  gender?: string;
+  volume_ml?: number;
+  // Поля для пигментов
+  color_type?: string;
+  weight_gr?: number;
+  application_type?: string;
+}
+
 // Типы для корзины
 export interface CartItem {
   id: string; // уникальный ID для корзины

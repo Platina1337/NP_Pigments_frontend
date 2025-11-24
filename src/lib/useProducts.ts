@@ -1,10 +1,10 @@
 import useSWRInfinite from 'swr/infinite';
 import useSWR from 'swr';
-import { PerfumeListItem, PerfumeFilters, Category, Brand } from '@/types';
+import { PerfumeListItem, ProductListItem, PerfumeFilters, Category, Brand } from '@/types';
 import { api } from '@/lib/api';
 
 export interface ProductsResponse {
-  results: PerfumeListItem[];
+  results: ProductListItem[];
   count: number;
   next: string | null;
   previous: string | null;

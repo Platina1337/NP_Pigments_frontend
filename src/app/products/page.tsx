@@ -334,7 +334,7 @@ export default function ProductsPage() {
                 {products.map((product) => (
                   <ProductCard
                     key={product.id}
-                    perfume={product}
+                    product={product}
                     breadcrumbPath={getBreadcrumbPath()}
                   />
                 ))}
