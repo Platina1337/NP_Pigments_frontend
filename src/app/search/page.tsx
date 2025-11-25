@@ -122,12 +122,13 @@ export default function SearchPage() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Поиск парфюма, бренда..."
-                  className="w-full pl-12 pr-10 py-3 text-base bg-gray-50 dark:bg-gray-700 border-0 rounded-xl focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-600"
+                  style={{ paddingLeft: '72px' }}
+                  className="w-full pr-10 py-3 text-base bg-gray-50 dark:bg-gray-700 border-0 rounded-xl focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-600"
                   autoFocus
                 />
-                <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-                  <Search className="w-5 h-5 text-gray-400" />
-                </div>
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-inner shadow-primary/10 z-10">
+                  <Search className="w-5 h-5" />
+                </span>
                 {query && (
                   <button
                     onClick={clearSearch}
