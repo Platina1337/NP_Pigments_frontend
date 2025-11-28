@@ -3,10 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { clsx } from 'clsx'
-import { Filter, Search, SlidersHorizontal, Sparkles, RefreshCw, X, PackageOpen, Stars, ChevronDown, Check, ArrowUp } from 'lucide-react'
+import { Filter, Search, SlidersHorizontal, Sparkles, RefreshCw, X, PackageOpen, Stars, ChevronDown, Check, ArrowUp, Info } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { DualRangeSlider } from '@/components/ui/DualRangeSlider'
+import { FilterSelect } from '@/components/ui/FilterSelect'
+
 import Loading from '@/components/Loading'
+import { ProductCard } from '@/components/products/ProductCard'
 import {
   api,
   formatGender,
@@ -106,87 +109,6 @@ const isRecentProduct = (product: CatalogProduct, days = 45) => {
   if (Number.isNaN(created)) return false
   const diffDays = (Date.now() - created) / (1000 * 60 * 60 * 24)
   return diffDays <= days
-}
-
-const FilterSelect = <T extends string | number>({
-  label,
-  value,
-  options,
-  onChange,
-  placeholder = 'Все',
-  disabled = false,
-}: {
-  label: string
-  value: T | 'all'
-  options: Array<{ value: T | 'all'; label: string }>
-  onChange: (value: T | 'all') => void
-  placeholder?: string
-  disabled?: boolean
-}) => {
-  const [isOpen, setIsOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  const currentLabel = options.find((opt) => opt.value === value)?.label || placeholder
-
-  return (
-    <div ref={menuRef} className={clsx('relative', disabled && 'opacity-50 pointer-events-none')}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full rounded-xl border border-border/60 bg-secondary/70 px-4 py-3 text-left transition-colors duration-200 hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs uppercase tracking-widest text-foreground/50">{label}</p>
-            <p className="font-semibold text-foreground truncate">{currentLabel}</p>
-          </div>
-          <ChevronDown
-            className={clsx(
-              'h-4 w-4 text-primary transition-transform duration-200 flex-shrink-0',
-              isOpen && 'rotate-180'
-            )}
-          />
-        </div>
-      </button>
-
-      <div
-        className={clsx(
-          'absolute right-0 mt-2 w-full rounded-2xl border border-border/50 bg-card shadow-2xl shadow-black/20 transition-all duration-200 origin-top z-40 max-h-64 overflow-hidden',
-          isOpen ? 'visible scale-100 opacity-100' : 'pointer-events-none invisible scale-95 opacity-0'
-        )}
-      >
-        <ul className="py-2 overflow-y-auto overflow-x-hidden max-h-64">
-          {options.map((option) => (
-            <li key={String(option.value)}>
-              <button
-                type="button"
-                className={clsx(
-                  'w-full px-4 py-3 text-sm text-left transition-all duration-200 hover:translate-x-1 hover:bg-primary/10',
-                  value === option.value ? 'bg-primary/15 text-primary font-semibold' : 'text-foreground/80'
-                )}
-                onClick={() => {
-                  onChange(option.value)
-                  setIsOpen(false)
-                }}
-              >
-                {option.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  )
 }
 
 interface FiltersPanelProps {
@@ -331,8 +253,8 @@ const FiltersPanel: React.FC<FiltersPanelProps> = ({
   }
 
   return (
-    <div className="bg-card border border-border/40 rounded-2xl p-6 shadow-lg shadow-black/10 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="bg-card border border-border/40 rounded-2xl p-4 sm:p-6 shadow-lg shadow-black/10 space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm uppercase tracking-widest text-foreground/60">Фильтр-бар</p>
           <h3 className="text-xl font-semibold text-foreground mt-1">Точная настройка</h3>
@@ -359,7 +281,7 @@ const FiltersPanel: React.FC<FiltersPanelProps> = ({
         />
       </section>
 
-      <section className="grid grid-cols-2 gap-3">
+      <section className="grid gap-3 sm:grid-cols-2">
         <FilterSelect
           label="Бренд"
           value={filters.brandId}
@@ -381,7 +303,7 @@ const FiltersPanel: React.FC<FiltersPanelProps> = ({
         />
       </section>
 
-      <section className="grid grid-cols-2 gap-3">
+      <section className="grid gap-3 sm:grid-cols-2">
         <FilterSelect
           label="Гендер"
           value={filters.gender}
@@ -405,7 +327,7 @@ const FiltersPanel: React.FC<FiltersPanelProps> = ({
         />
       </section>
 
-      <section className="space-y-5 rounded-3xl border border-border/50 bg-card/80 p-5">
+      <section className="space-y-5 rounded-3xl border border-border/50 bg-card/80 p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1">
             <p className="text-[11px] uppercase tracking-[0.35em] text-foreground/50">финансовый фокус</p>
@@ -435,7 +357,7 @@ const FiltersPanel: React.FC<FiltersPanelProps> = ({
 
         {isPriceRangeAvailable ? (
           <>
-            <div className="space-y-3 rounded-2xl border border-border/40 bg-secondary/30 p-4">
+            <div className="space-y-3 rounded-2xl border border-border/40 bg-secondary/30 p-3 sm:p-4">
 
               <DualRangeSlider
                 min={priceLimits.min}
@@ -448,9 +370,9 @@ const FiltersPanel: React.FC<FiltersPanelProps> = ({
                 ariaLabels={['Минимальная цена', 'Максимальная цена']}
                 testId="price-range-slider"
               />
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2 rounded-2xl border border-border/40 bg-card/80 p-3 shadow-inner">
-                  <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-foreground/50">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2 rounded-2xl border border-border/40 bg-card/80 p-3 sm:p-4 shadow-inner">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] uppercase tracking-wide text-foreground/50">
                     <span>Старт</span>
                     <div className="flex gap-1">
                       <button
@@ -483,7 +405,7 @@ const FiltersPanel: React.FC<FiltersPanelProps> = ({
                       </button>
                     </div>
                   </div>
-                  <div className="flex items-baseline gap-2">
+                  <div className="flex flex-wrap items-baseline gap-2">
                     <span className="text-xs text-foreground/50">от</span>
                     <input
                       type="number"
@@ -497,8 +419,8 @@ const FiltersPanel: React.FC<FiltersPanelProps> = ({
                     />
                   </div>
                 </div>
-                <div className="space-y-2 rounded-2xl border border-border/40 bg-card/80 p-3 shadow-inner">
-                  <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-foreground/50">
+                <div className="space-y-2 rounded-2xl border border-border/40 bg-card/80 p-3 sm:p-4 shadow-inner">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] uppercase tracking-wide text-foreground/50">
                     <span>Потолок</span>
                     <div className="flex gap-1">
                       <button
@@ -531,7 +453,7 @@ const FiltersPanel: React.FC<FiltersPanelProps> = ({
                       </button>
                     </div>
                   </div>
-                  <div className="flex items-baseline gap-2">
+                  <div className="flex flex-wrap items-baseline gap-2">
                     <span className="text-xs text-foreground/50">до</span>
                     <input
                       type="number"
@@ -574,7 +496,7 @@ const FiltersPanel: React.FC<FiltersPanelProps> = ({
         )}
       </section>
 
-      <section className="grid grid-cols-2 gap-3">
+      <section className="grid gap-3 sm:grid-cols-2">
         <label className="relative flex flex-col justify-between gap-2 rounded-xl border border-border/50 bg-secondary/40 p-3 cursor-pointer transition-all duration-200 hover:border-primary/50 hover:bg-primary/5 has-[:checked]:border-primary has-[:checked]:bg-primary/10">
           <div className="flex justify-between items-start">
             <div className="space-y-0.5">
@@ -650,6 +572,33 @@ export default function ProductsPage() {
 
   // Scroll to top button state
   const [showScrollTop, setShowScrollTop] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 400) {
+        setShowScrollTop(true)
+      } else {
+        setShowScrollTop(false)
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  const scrollToTop = () => {
+    if (searchPanelRef.current) {
+      searchPanelRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
+  // Info blocks visibility
+  const [isInfoVisible, setInfoVisible] = useState(false)
 
   const loadCatalog = async (options: { silent?: boolean } = {}) => {
     setError(null)
@@ -1051,87 +1000,108 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="min-h-screen py-10">
+    <div className="min-h-screen py-8 md:py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-        <section className="grid gap-8 lg:grid-cols-[1.1fr,0.9fr]">
-          <div className="bg-card/80 border border-border/30 rounded-3xl p-8 relative overflow-hidden">
-            <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-br from-primary/20 to-transparent blur-3xl pointer-events-none" />
-            <p className="text-sm uppercase tracking-widest text-foreground/60">Витрина NP Academy</p>
-            <h1 className="text-3xl md:text-4xl font-semibold text-foreground mt-3 mb-4 leading-tight">
-              Все продукты в одном месте — от нишевых ароматов до премиальных пигментов
-            </h1>
-            <p className="text-foreground/70 max-w-2xl">
-              Смешиваем эстетичный дизайн и удобные сценарии покупки: подберите коллекцию по бренду, настроению,
-              бюджету или наличию прямо здесь, без переключения вкладок.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              {quickFilters.map((quickFilter) => (
-                <button
-                  key={quickFilter.id}
-                  type="button"
-                  onClick={quickFilter.onToggle}
-                  className={clsx(
-                    'rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200',
-                    quickFilter.active
-                      ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
-                      : 'border-border/60 text-foreground/80 hover:border-primary/70'
-                  )}
-                >
-                  <span className="block font-semibold">{quickFilter.label}</span>
-                  <span className="block text-xs text-foreground/70">{quickFilter.description}</span>
-                </button>
-              ))}
-            </div>
-            <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {heroHighlights.map((highlight) => (
-                <div key={highlight.label} className="rounded-2xl bg-secondary/40 border border-border/40 p-4 text-center">
-                  <p className="text-3xl font-semibold text-primary">{highlight.value}</p>
-                  <p className="text-sm text-foreground/70">{highlight.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-primary/20 via-primary/5 to-transparent border border-primary/20 rounded-3xl p-8 flex flex-col justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm">
-                <Sparkles className="w-4 h-4" />
-                Режим подбора
-              </div>
-              <h3 className="text-2xl font-semibold text-foreground mt-4">
-                Нужна персональная рекомендация?
-              </h3>
-              <p className="text-foreground/70 mt-3">
-                Сохраните понравившиеся позиции или переходите на страницу продукта — там вы найдете подробную
-                информацию об ингредиентах, отзывах и рекомендациях стилистов школы.
-              </p>
-            </div>
-            <div className="mt-6 space-y-3 text-sm text-foreground/70">
-              <div className="flex items-center gap-2">
-                <Stars className="w-4 h-4 text-primary" />
-                Курируем новое поступление каждую неделю
-              </div>
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-primary" />
-                Фильтры работают без перезагрузки страницы
-              </div>
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-primary" />
-                Сохраняем выбранные параметры пока вы на странице
-              </div>
-              {lastUpdated && (
-                <p className="text-xs text-foreground/60">
-                  Обновлено {new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(lastUpdated))}
-                </p>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setInfoVisible(!isInfoVisible)}
+            className={clsx(
+              'flex items-center gap-3 text-sm font-semibold transition-all duration-200 px-6 py-3 rounded-2xl border shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95',
+              isInfoVisible
+                ? 'bg-primary text-white border-primary shadow-primary/30'
+                : 'bg-card border-border/60 text-foreground hover:border-primary/70 hover:bg-primary/5'
+            )}
+          >
+            <Info className="w-4 h-4 flex-shrink-0" />
+            {isInfoVisible ? 'Скрыть информацию' : 'О проекте и рекомендации'}
+            <ChevronDown
+              className={clsx(
+                'w-4 h-4 transition-transform duration-200 flex-shrink-0',
+                isInfoVisible && 'rotate-180'
               )}
+            />
+          </button>
+        </div>
+
+        {isInfoVisible && (
+          <section className="grid gap-4 md:grid-cols-2">
+            <div className="bg-card/80 border border-border/60 dark:border-border/30 rounded-2xl p-5 relative overflow-hidden animate-in fade-in slide-in-from-left-4 duration-500 delay-100">
+              <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-br from-primary/20 to-transparent blur-3xl pointer-events-none" />
+              <p className="text-xs uppercase tracking-widest text-foreground/60">Витрина NP Academy</p>
+              <h1 className="text-xl font-semibold text-foreground mt-2 mb-2 leading-tight">
+                Все продукты в одном месте
+              </h1>
+              <p className="text-sm text-foreground/70 max-w-xl">
+                Подберите коллекцию по бренду, настроению, бюджету или наличию.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {quickFilters.map((quickFilter) => (
+                  <button
+                    key={quickFilter.id}
+                    type="button"
+                    onClick={quickFilter.onToggle}
+                    className={clsx(
+                      'rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200',
+                      quickFilter.active
+                        ? 'bg-primary text-white border-primary shadow-md shadow-primary/20'
+                        : 'border-border/60 text-foreground/80 hover:border-primary/70'
+                    )}
+                  >
+                    <span className="block font-semibold">{quickFilter.label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                {heroHighlights.map((highlight) => (
+                  <div key={highlight.label} className="rounded-xl bg-secondary/40 border border-border/40 p-2 text-center">
+                    <p className="text-lg font-semibold text-primary">{highlight.value}</p>
+                    <p className="text-[10px] text-foreground/70">{highlight.label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+
+            <div className="bg-gradient-to-br from-primary/20 via-primary/5 to-transparent border border-primary/20 rounded-2xl p-5 flex flex-col justify-between animate-in fade-in slide-in-from-right-4 duration-500 delay-200">
+              <div>
+                <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">
+                  <Sparkles className="w-3 h-3" />
+                  Режим подбора
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mt-3">
+                  Нужна персональная рекомендация?
+                </h3>
+                <p className="text-sm text-foreground/70 mt-2">
+                  Сохраните понравившиеся позиции или переходите на страницу продукта за подробностями.
+                </p>
+              </div>
+              <div className="mt-4 space-y-2 text-xs text-foreground/70">
+                <div className="flex items-center gap-2">
+                  <Stars className="w-3 h-3 text-primary" />
+                  Курируем новое поступление каждую неделю
+                </div>
+                <div className="flex items-center gap-2">
+                  <Filter className="w-3 h-3 text-primary" />
+                  Фильтры работают без перезагрузки страницы
+                </div>
+                <div className="flex items-center gap-2">
+                  <SlidersHorizontal className="w-3 h-3 text-primary" />
+                  Сохраняем выбранные параметры
+                </div>
+                {lastUpdated && (
+                  <p className="text-[10px] text-foreground/60 mt-2">
+                    Обновлено {new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(lastUpdated))}
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
 
         <section className="space-y-6">
           <div
             ref={searchPanelRef}
-            className="bg-card/80 border border-border/30 rounded-2xl p-4 md:p-6 shadow-lg shadow-black/10 space-y-4"
+            className="bg-card/80 border border-border/80 rounded-2xl p-4 md:p-6 shadow-lg shadow-black/10 space-y-4"
           >
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
               <div className="relative flex-1">
@@ -1261,7 +1231,7 @@ export default function ProductsPage() {
             )}
           </div>
 
-          <div className="sticky top-[96px] z-30 sm:top-[104px]">
+          <div className="md:sticky md:top-[120px] z-30">
             <div className="rounded-2xl border border-primary/60 bg-[rgba(59,113,113,0.9)] shadow-lg shadow-primary/40 text-white">
               <button
                 type="button"
@@ -1270,8 +1240,8 @@ export default function ProductsPage() {
                 aria-expanded={isFiltersExpanded}
               >
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Расширенные фильтры</p>
-                  <p className="text-xs text-foreground/60">
+                  <p className="text-sm font-semibold text-white">Расширенные фильтры</p>
+                  <p className="text-xs text-white/80">
                     Настройте подбор по типу продукта, бренду, цене и наличию
                   </p>
                 </div>
@@ -1338,87 +1308,11 @@ export default function ProductsPage() {
             <>
               <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredProducts.slice(0, displayedCount).map((product) => (
-                  <article key={`${product.productType}-${product.id}`} className="product-card flex flex-col overflow-hidden">
-                    <div className="relative">
-                      <img
-                        src={getImageUrl(product.image || '')}
-                        alt={product.name}
-                        className="h-56 w-full rounded-2xl object-cover"
-                      />
-                      {product.featured && (
-                        <span className="absolute top-4 left-4 rounded-full bg-primary/90 text-white text-xs font-semibold px-3 py-1 shadow-lg shadow-primary/30">
-                          Кураторский выбор
-                        </span>
-                      )}
-                      <span
-                        className={clsx(
-                          'absolute top-4 right-4 rounded-full px-3 py-1 text-xs font-semibold',
-                          product.productType === 'perfume' ? 'bg-primary/15 text-primary' : 'bg-amber-500/20 text-amber-200'
-                        )}
-                      >
-                        {TYPE_LABELS[product.productType]}
-                      </span>
-                      {!product.in_stock && (
-                        <span className="absolute bottom-4 left-4 bg-black/60 text-white text-xs px-3 py-1 rounded-full">
-                          Ожидаем поставку
-                        </span>
-                      )}
-                      {isRecentProduct(product) && (
-                        <span className="absolute bottom-4 right-4 bg-emerald-500/80 text-white text-xs px-3 py-1 rounded-full">
-                          Новинка
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-col flex-1 mt-4 space-y-4">
-                      <div>
-                        <p className="text-sm uppercase tracking-widest text-foreground/60">
-                          {product.brand?.name ?? 'Без бренда'}
-                        </p>
-                        <h3 className="text-xl font-semibold text-foreground mt-1 line-clamp-2">{product.name}</h3>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-2xl font-bold text-primary">{formatPrice(product.price)}</p>
-                        <p className={clsx('text-sm font-medium', product.in_stock ? 'text-emerald-400' : 'text-foreground/50')}>
-                          {product.in_stock ? 'В наличии' : 'Предзаказ'}
-                        </p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 text-sm text-foreground/70">
-                        {product.productType === 'perfume' ? (
-                          <>
-                            <div>
-                              <p className="text-xs uppercase tracking-widest text-foreground/50">Объем</p>
-                              <p className="font-medium">{formatVolume(product.volume_ml)}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs uppercase tracking-widest text-foreground/50">Гендер</p>
-                              <p className="font-medium">{formatGender(product.gender)}</p>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div>
-                              <p className="text-xs uppercase tracking-widest text-foreground/50">Вес</p>
-                              <p className="font-medium">{formatWeight(product.weight_gr)}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs uppercase tracking-widest text-foreground/50">Назначение</p>
-                              <p className="font-medium">
-                                {APPLICATION_LABELS[(product as Pigment).application_type as ApplicationType]}
-                              </p>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                      <p className="text-sm text-foreground/60 line-clamp-2">
-                        {product.description || 'Описание появится совсем скоро.'}
-                      </p>
-                      <Link href={`/products/${product.id}`} className="mt-auto">
-                        <Button variant="secondary" className="w-full">
-                          Подробнее
-                        </Button>
-                      </Link>
-                    </div>
-                  </article>
+                  <ProductCard
+                    key={`${product.productType}-${product.id}`}
+                    product={product}
+                    isRecent={isRecentProduct(product)}
+                  />
                 ))}
               </div>
 
@@ -1446,6 +1340,16 @@ export default function ProductsPage() {
           )}
         </section>
       </div>
+      {showScrollTop && (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          aria-label="Вернуться к началу списка"
+          className="fixed bottom-25 right-4 md:bottom-8 md:right-8 z-50 inline-flex items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/40 hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/40 w-11 h-11 md:w-12 md:h-12 transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0"
+        >
+          <ArrowUp className="w-5 h-5" />
+        </button>
+      )}
     </div>
   )
 }

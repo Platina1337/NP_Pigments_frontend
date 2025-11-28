@@ -4,6 +4,8 @@ interface ApiResponse<T = unknown> {
   data?: T
   error?: string
   message?: string
+  status?: number
+  rawError?: unknown
 }
 
 class ApiClient {
@@ -17,6 +19,40 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
+    const extractErrorMessage = (body: unknown): { message: string; raw?: unknown } => {
+      if (!body) {
+        return { message: 'Неизвестная ошибка' }
+      }
+      if (typeof body === 'string') {
+        return { message: body, raw: body }
+      }
+      if (typeof body === 'object') {
+        const maybeDetail = (body as Record<string, unknown>).detail
+        if (typeof maybeDetail === 'string') {
+          return { message: maybeDetail, raw: body }
+        }
+        if (typeof maybeDetail === 'object' && maybeDetail !== null) {
+          const first = Object.values(maybeDetail)[0]
+          if (typeof first === 'string') {
+            return { message: first, raw: body }
+          }
+        }
+        // DRF serializer errors: {field: ['msg']}
+        for (const value of Object.values(body as Record<string, unknown>)) {
+          if (Array.isArray(value) && value.length > 0) {
+            const first = value[0]
+            if (typeof first === 'string') {
+              return { message: first, raw: body }
+            }
+          } else if (typeof value === 'string') {
+            return { message: value, raw: body }
+          }
+        }
+        return { message: 'Произошла ошибка', raw: body }
+      }
+      return { message: 'Произошла ошибка', raw: body }
+    }
+
     try {
       const url = `${this.baseURL}${endpoint}`
 
@@ -48,12 +84,15 @@ class ApiClient {
         ...options,
       })
 
+      const text = await response.text()
+      const maybeJson = text ? (() => { try { return JSON.parse(text) } catch { return null } })() : null
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const { message, raw } = extractErrorMessage(maybeJson ?? text)
+        return { error: message, rawError: raw ?? maybeJson ?? text, status: response.status }
       }
 
-      const data = await response.json()
-      return { data }
+      return { data: (maybeJson ?? (text as unknown)) as T, status: response.status }
     } catch (error) {
       return {
         error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -154,6 +193,19 @@ export const api = {
     removeItem: (id: number) => apiClient.delete(`/cart-items/${id}/`),
     sync: (items: Array<{ product_type: string; product_id: number; quantity: number }>) =>
       apiClient.post('/cart/sync/', { items }),
+  },
+  wishlist: {
+    get: () => apiClient.get('/wishlist/'),
+    list: () => apiClient.get('/wishlist-items/'),
+    addItem: (data: { product_type: 'perfume' | 'pigment'; product_id: number }) =>
+      apiClient.post('/wishlist-items/', data),
+    removeItem: (id: number) => apiClient.delete(`/wishlist-items/${id}/`),
+    removeByProduct: (product_type: 'perfume' | 'pigment', product_id: number) =>
+      apiClient.delete(`/wishlist-items/by-product/?product_type=${product_type}&product_id=${product_id}`),
+    status: (product_type: 'perfume' | 'pigment', product_id: number) =>
+      apiClient.get('/wishlist-items/status/', { product_type, product_id }),
+    bulkAdd: (items: Array<{ product_type: 'perfume' | 'pigment'; product_id: number }>) =>
+      apiClient.post('/wishlist-items/bulk-add/', { items }),
   },
 
   // Orders

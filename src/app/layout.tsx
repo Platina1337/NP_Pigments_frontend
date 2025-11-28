@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Dancing_Script, Montserrat } from 'next/font/google';
 import "./globals.css";
 import "@/styles/critical.css";
-import { Header } from "@/components/layout/Header";
+import { SignatureHeader } from "@/components/layout/SignatureHeader";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNavbar } from "@/components/layout/MobileBottomNavbar";
 import ClientProviders from "@/components/ClientProviders";
@@ -53,9 +53,9 @@ export default function RootLayout({
                 <div className="relative flex min-h-screen flex-col">
                   {/* Header только для десктопов, на мобильных - нижний навбар */}
                   <div className="hidden md:block">
-                    <Header />
+                    <SignatureHeader />
                   </div>
-                  <main className="flex-1 pt-16 sm:pt-20 md:pt-24">
+                  <main className="flex-1 pt-4 sm:pt-10 md:pt-24">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 md:pb-8">
                       {children}
                     </div>

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Star, ThumbsUp, Flag, MessageCircle, User } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { FilterSelect } from '@/components/ui/FilterSelect'
 
 interface Review {
   id: number;
@@ -175,10 +176,10 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => 
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-bold text-gray-900">Отзывы покупателей</h2>
-          <Button variant="secondary" size="sm">
-            <MessageCircle className="w-4 h-4 mr-2" />
-            Написать отзыв
-          </Button>
+          <button className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200 hover:border-blue-300 rounded-xl text-blue-700 hover:text-blue-800 transition-all duration-300 hover:shadow-md">
+            <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+            <span className="text-sm font-medium">Написать отзыв</span>
+          </button>
         </div>
 
         {/* Rating Summary */}
@@ -217,15 +218,18 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => 
         {/* Sort Options */}
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900">Все отзывы</h3>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-          >
-            <option value="newest">Сначала новые</option>
-            <option value="oldest">Сначала старые</option>
-            <option value="rating">По рейтингу</option>
-          </select>
+          <div className="w-48">
+            <FilterSelect
+              label="Сортировка"
+              value={sortBy}
+              onChange={(value) => setSortBy(value as typeof sortBy)}
+              options={[
+                { value: 'newest', label: 'Сначала новые' },
+                { value: 'oldest', label: 'Сначала старые' },
+                { value: 'rating', label: 'По рейтингу' },
+              ]}
+            />
+          </div>
         </div>
 
         {/* Reviews List */}
@@ -238,12 +242,17 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => 
         {/* Show More Button */}
         {mockReviews.length > 3 && (
           <div className="text-center mt-8">
-            <Button
-              variant="secondary"
+            <button
               onClick={() => setShowAllReviews(!showAllReviews)}
+              className="group inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 hover:border-emerald-300 rounded-xl text-emerald-700 hover:text-emerald-800 transition-all duration-300 hover:shadow-lg font-medium"
             >
-              {showAllReviews ? 'Показать меньше' : `Показать все отзывы (${mockReviews.length})`}
-            </Button>
+              <span>{showAllReviews ? 'Показать меньше' : `Показать все отзывы (${mockReviews.length})`}</span>
+              <div className={`w-4 h-4 transition-transform duration-300 ${showAllReviews ? 'rotate-180' : ''}`}>
+                <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </button>
           </div>
         )}
       </div>

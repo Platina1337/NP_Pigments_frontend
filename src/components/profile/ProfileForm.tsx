@@ -15,10 +15,10 @@ export const ProfileForm: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState(0); // Для принудительного обновления
   const [lastUpdateTime, setLastUpdateTime] = useState<number>(0); // Время последнего обновления
   const [formData, setFormData] = useState({
-    first_name: user?.profile.first_name || '',
-    last_name: user?.profile.last_name || '',
-    phone: user?.profile.phone || '',
-    date_of_birth: user?.profile.date_of_birth || '',
+    first_name: user?.profile?.first_name || '',
+    last_name: user?.profile?.last_name || '',
+    phone: user?.profile?.phone || '',
+    date_of_birth: user?.profile?.date_of_birth || '',
   });
 
   // Обновляем formData при изменении user
@@ -26,10 +26,10 @@ export const ProfileForm: React.FC = () => {
     console.log('ProfileForm: User changed, updating formData:', user); // Логирование
     console.log('ProfileForm: User profile data:', user?.profile); // Логирование
     setFormData({
-      first_name: user?.profile.first_name || '',
-      last_name: user?.profile.last_name || '',
-      phone: user?.profile.phone || '',
-      date_of_birth: user?.profile.date_of_birth || '',
+      first_name: user?.profile?.first_name || '',
+      last_name: user?.profile?.last_name || '',
+      phone: user?.profile?.phone || '',
+      date_of_birth: user?.profile?.date_of_birth || '',
     });
   }, [user]);
 
@@ -211,10 +211,10 @@ export const ProfileForm: React.FC = () => {
   const handleCancel = () => {
     // Используем актуальные данные из user (которые обновляются через useEffect)
     setFormData({
-      first_name: user?.profile.first_name || '',
-      last_name: user?.profile.last_name || '',
-      phone: user?.profile.phone || '',
-      date_of_birth: user?.profile.date_of_birth || '',
+      first_name: user?.profile?.first_name || '',
+      last_name: user?.profile?.last_name || '',
+      phone: user?.profile?.phone || '',
+      date_of_birth: user?.profile?.date_of_birth || '',
     });
     setErrors({});
     setIsEditing(false);
@@ -251,9 +251,9 @@ export const ProfileForm: React.FC = () => {
         <div className="flex items-center space-x-6">
           <div className="relative">
             <div className="w-24 h-24 bg-primary rounded-full flex items-center justify-center overflow-hidden">
-              {user.profile.avatar ? (
+              {user.profile?.avatar ? (
                 <img
-                  src={getImageUrl(user.profile.avatar)}
+                  src={getImageUrl(user.profile?.avatar)}
                   alt="Avatar"
                   className="w-24 h-24 object-cover"
                 />
@@ -342,7 +342,7 @@ export const ProfileForm: React.FC = () => {
               </div>
             ) : (
               <p className="text-foreground py-2 px-3 bg-muted rounded-md">
-                {user.profile.last_name || 'Не указано'}
+                {user.profile?.last_name || 'Не указано'}
               </p>
             )}
           </div>
@@ -371,7 +371,7 @@ export const ProfileForm: React.FC = () => {
               </div>
             ) : (
               <p className="text-foreground py-2 px-3 bg-muted rounded-md">
-                {user.profile.phone || 'Не указано'}
+                {user.profile?.phone || 'Не указано'}
               </p>
             )}
           </div>
@@ -400,8 +400,8 @@ export const ProfileForm: React.FC = () => {
               </div>
             ) : (
               <p className="text-foreground py-2 px-3 bg-muted rounded-md">
-                {user.profile.date_of_birth
-                  ? new Date(user.profile.date_of_birth).toLocaleDateString('ru-RU')
+                {user.profile?.date_of_birth
+                  ? new Date(user.profile?.date_of_birth).toLocaleDateString('ru-RU')
                   : 'Не указано'
                 }
               </p>

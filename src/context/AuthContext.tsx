@@ -111,19 +111,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (username: string, password: string) => {
     try {
       const response = await api.auth.login({ username, password });
-      if (response.data) {
-        const loginData = response.data as LoginResponse;
-        const { user: userData, tokens } = loginData;
-
-        localStorage.setItem('access_token', tokens.access);
-        localStorage.setItem('refresh_token', tokens.refresh);
-        localStorage.setItem('token_timestamp', Date.now().toString());
-        setUser(userData);
-      } else {
-        throw new Error(response.error || 'Login failed');
+      if (!response.data) {
+        throw new Error(response.error || 'Ошибка авторизации');
       }
+
+      const payload = response.data as Record<string, any>;
+      const accessToken: string | undefined =
+        payload.tokens?.access ?? payload.access;
+      const refreshToken: string | undefined =
+        payload.tokens?.refresh ?? payload.refresh;
+
+      if (!accessToken || !refreshToken) {
+        throw new Error('Сервер не вернул токены авторизации');
+      }
+
+      localStorage.setItem('access_token', accessToken);
+      localStorage.setItem('refresh_token', refreshToken);
+      localStorage.setItem('token_timestamp', Date.now().toString());
+
+      let userData = payload.user as User | undefined;
+      if (!userData) {
+        const profileResponse = await api.auth.profile();
+        if (profileResponse.data) {
+          userData = profileResponse.data as User;
+        }
+      }
+
+      if (!userData) {
+        throw new Error('Не удалось получить данные пользователя');
+      }
+
+      if (payload.settings) {
+        userData = {
+          ...userData,
+          settings: { ...(userData.settings || {}), ...payload.settings },
+        };
+      }
+
+      setUser(userData);
     } catch (error) {
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Ошибка авторизации');
     }
   };
 
@@ -150,6 +180,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('token_timestamp');
+    localStorage.removeItem('perfume-cart-hydrated'); // Очищаем флаг гидратации корзины
     setUser(null);
   };
 

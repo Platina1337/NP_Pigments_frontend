@@ -3,6 +3,7 @@
 import { useMemo, useCallback, useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { Sparkles, Stars } from 'lucide-react'
 import { useFeaturedProducts, saveBreadcrumbPath, type FeaturedItem } from '@/lib/swr-hooks'
 import { useScrollAnimation, useScrollFade } from '@/lib/useScrollAnimation'
 import { useTheme } from '@/context/ThemeContext'
@@ -94,17 +95,17 @@ export default function Home() {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
         {featuredProducts.slice(0, 6).map((item: FeaturedItem, index) => (
-            <Link
-              key={`${item.type}-${item.id}`}
-              href={getProductLink(item)}
-              onClick={() => handleProductClick(item)}
-              className="group relative glass-card rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 block"
-              style={{
-                animation: `slideInUp 0.8s ease-out ${index * 0.15}s forwards`,
-                opacity: 1,
-                transform: 'translateY(0px) rotate(0deg)'
-              }}
-            >
+          <Link
+            key={`${item.type}-${item.id}`}
+            href={getProductLink(item)}
+            onClick={() => handleProductClick(item)}
+            className="group relative glass-card rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 block"
+            style={{
+              animation: `slideInUp 0.8s ease-out ${index * 0.15}s forwards`,
+              opacity: 1,
+              transform: 'translateY(0px) rotate(0deg)'
+            }}
+          >
             {/* Простой темный фон */}
             <div className="absolute inset-0 bg-gradient-to-br from-background/50 to-card/50"></div>
 
@@ -116,11 +117,10 @@ export default function Home() {
             <div className="relative z-10 p-8">
               {/* Product type badge */}
               <div className="flex justify-between items-start mb-6">
-                <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                  item.type === 'perfume'
-                    ? 'bg-primary/20 text-primary border border-primary/30'
-                    : 'bg-orange-500/20 text-orange-600 border border-orange-500/30'
-                }`}>
+                <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${item.type === 'perfume'
+                  ? 'bg-primary/20 text-primary border border-primary/30'
+                  : 'bg-orange-500/20 text-orange-600 border border-orange-500/30'
+                  }`}>
                   <span className="mr-1">
                     {item.type === 'perfume' ? (
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -169,11 +169,11 @@ export default function Home() {
                     />
                   )}
                 </div>
-                </div>
+              </div>
 
-                {/* Product info */}
-                <div className="space-y-3">
-                  <h3 className="text-lg font-bold text-foreground leading-tight line-clamp-2 group-hover:text-primary transition-colors duration-300">
+              {/* Product info */}
+              <div className="space-y-3">
+                <h3 className="text-lg font-bold text-foreground leading-tight line-clamp-2 group-hover:text-primary transition-colors duration-300">
                   {item.name}
                 </h3>
 
@@ -187,7 +187,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            </Link>
+          </Link>
         ))}
       </div>
     )
@@ -202,171 +202,251 @@ export default function Home() {
         <div className="relative z-10 flex items-center min-h-screen py-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
             <div className="text-center space-y-6 sm:space-y-8">
-            {/* Main Brand Visual */}
-            <div className="mb-16">
-              <div className="relative inline-flex items-center justify-center mb-8">
-                <div className="relative w-48 h-48 flex items-center justify-center overflow-hidden">
+              {/* Main Brand Visual */}
+              <div className="mb-16">
+                <div className="relative inline-flex items-center justify-center mb-8">
+                  <div className="relative w-48 h-48 flex items-center justify-center overflow-hidden">
 
-                  {/* Орбитальная анимация */}
-                  <div className="absolute inset-0 animate-hero-icon-orbit">
-                    <div className="w-3 h-3 bg-primary rounded-full opacity-60"></div>
-                  </div>
-                  <div className="absolute inset-0 animate-hero-icon-orbit" style={{ animationDelay: '2s' }}>
-                    <div className="w-2 h-2 bg-accent rounded-full opacity-40"></div>
-                  </div>
-                  <div className="absolute inset-0 animate-hero-icon-orbit" style={{ animationDelay: '4s' }}>
-                    <div className="w-2.5 h-2.5 bg-secondary rounded-full opacity-50"></div>
-                  </div>
+                    {/* Орбитальная анимация */}
+                    <div className="absolute inset-0 animate-hero-icon-orbit">
+                      <div className="w-3 h-3 bg-primary rounded-full opacity-60"></div>
+                    </div>
+                    <div className="absolute inset-0 animate-hero-icon-orbit" style={{ animationDelay: '2s' }}>
+                      <div className="w-2 h-2 bg-accent rounded-full opacity-40"></div>
+                    </div>
+                    <div className="absolute inset-0 animate-hero-icon-orbit" style={{ animationDelay: '4s' }}>
+                      <div className="w-2.5 h-2.5 bg-secondary rounded-full opacity-50"></div>
+                    </div>
 
-                  {/* NP Logo Image */}
-                  <div ref={logoFade.ref} className="animate-hero-icon-dynamic-flow relative z-10 opacity-0 scale-90" style={{
-                    animation: 'heroFadeInScale 1.0s ease-out 0.1s forwards',
-                    opacity: logoFade.opacity
+                    {/* NP Logo Image */}
+                    <div ref={logoFade.ref} className="animate-hero-icon-dynamic-flow relative z-10 opacity-0 scale-90" style={{
+                      animation: 'heroFadeInScale 1.0s ease-out 0.1s forwards',
+                      opacity: logoFade.opacity
+                    }}>
+                      <Image
+                        src={theme === 'dark' ? '/np-logo-light.png' : '/np-logo-dark.png'}
+                        alt="NP Perfumes Logo"
+                        width={192}
+                        height={192}
+                        className="w-48 h-48 object-contain drop-shadow-lg"
+                        priority
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div ref={titleFade.ref} className="opacity-0 scale-95" style={{
+                  animation: 'heroFadeInScale 1.0s ease-out 0.3s forwards',
+                  opacity: titleFade.opacity
+                }}>
+                  <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-foreground mb-4 sm:mb-6 leading-tight drop-shadow-2xl">
+                    <span className="inline-block animate-logo-shimmer px-2 py-1 opacity-0 scale-95" style={{
+                      animation: 'heroFadeInScale 1.0s ease-out 0.5s forwards'
+                    }}>
+                      NP Perfumes
+                    </span>
+                  </h1>
+                  <p ref={subtitleFade.ref} className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-foreground mb-8 sm:mb-12 max-w-3xl mx-auto leading-relaxed font-light px-2 drop-shadow-lg opacity-0 scale-95" style={{
+                    animation: 'heroFadeInScale 1.0s ease-out 0.7s forwards',
+                    opacity: subtitleFade.opacity
                   }}>
-                    <Image
-                      src={theme === 'dark' ? '/np-logo-dark.png' : '/np-logo-light.png'}
-                      alt="NP Perfumes Logo"
-                      width={192}
-                      height={192}
-                      className="w-48 h-48 object-contain drop-shadow-lg"
-                      priority
-                    />
-                  </div>
+                    Элитная парфюмерия и профессиональные пигменты премиум-класса
+                  </p>
                 </div>
               </div>
 
-              <div ref={titleFade.ref} className="opacity-0 scale-95" style={{
-                animation: 'heroFadeInScale 1.0s ease-out 0.3s forwards',
-                opacity: titleFade.opacity
-              }}>
-                <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-4 sm:mb-6 leading-tight drop-shadow-2xl">
-                  <span className="inline-block animate-logo-shimmer px-2 py-1 opacity-0 scale-95" style={{
-                    animation: 'heroFadeInScale 1.0s ease-out 0.5s forwards'
-                  }}>
-                    NP Perfumes
-                  </span>
-                </h1>
-                <p ref={subtitleFade.ref} className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white mb-8 sm:mb-12 max-w-3xl mx-auto leading-relaxed font-light px-2 drop-shadow-lg opacity-0 scale-95" style={{
-                  animation: 'heroFadeInScale 1.0s ease-out 0.7s forwards',
-                  opacity: subtitleFade.opacity
+              {/* Creative Discovery Cards */}
+              <div ref={categoriesAnimation.ref} className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-8 max-w-7xl mx-auto mb-16 sm:mb-20">
+
+                {/* Ароматы и Искусство */}
+                <div ref={aromatyFade.ref} className="group relative lg:col-span-2 opacity-0 scale-95" style={{
+                  animation: 'heroFadeInScale 1.0s ease-out 0.4s forwards',
+                  opacity: aromatyFade.opacity
                 }}>
-                  Элитная парфюмерия и профессиональные пигменты премиум-класса
-                </p>
-              </div>
-            </div>
+                  <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-background via-primary/10 to-[#D4A373]/15 p-8 sm:p-10 shadow-2xl backdrop-blur-xl transform group-hover:scale-[1.02] transition-all duration-700">
+                    <div className="absolute inset-0 pointer-events-none">
+                      <div className="absolute -left-10 top-0 w-44 h-44 bg-primary/20 blur-3xl"></div>
+                      <div className="absolute right-0 bottom-0 w-56 h-56 bg-[#D4A373]/25 blur-3xl"></div>
+                      <div className="absolute inset-0 opacity-70 mix-blend-overlay bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.16),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(212,163,115,0.16),transparent_30%),radial-gradient(circle_at_75%_70%,rgba(59,113,113,0.18),transparent_32%)]"></div>
+                    </div>
 
-            {/* Creative Discovery Cards */}
-            <div ref={categoriesAnimation.ref} className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-8 max-w-7xl mx-auto mb-16 sm:mb-20">
-
-              {/* Ароматы и Искусство */}
-              <div ref={aromatyFade.ref} className="group relative lg:col-span-2 opacity-0 scale-95" style={{
-                animation: 'heroFadeInScale 1.0s ease-out 0.4s forwards',
-                opacity: aromatyFade.opacity
-              }}>
-                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 p-6 sm:p-8 lg:p-10 shadow-2xl transform group-hover:scale-[1.02] transition-all duration-700">
-
-                  {/* Декоративные элементы */}
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-12 translate-x-12"></div>
-                  <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-10 -translate-x-10"></div>
-
-                  <div className="relative z-10">
-                    <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 lg:gap-6">
-                      {/* Иконка с анимацией */}
-                      <div className="flex-shrink-0">
-                        <div className="relative w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                          <svg className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z" />
-                          </svg>
+                    <div className="relative z-10 grid lg:grid-cols-[1.1fr,0.9fr] items-center gap-8 lg:gap-12">
+                      <div className="space-y-5">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-semibold uppercase tracking-[0.12em]">
+                          <Sparkles className="w-4 h-4" />
+                          <span>NP Perfumes universe</span>
                         </div>
-                      </div>
 
-                      {/* Контент */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-2 lg:mb-3 leading-tight">
-                          Ароматы и Искусство
-                        </h3>
-                        <p className="text-sm sm:text-base lg:text-lg text-white/90 leading-relaxed mb-4 lg:mb-6 max-w-xl">
-                          Мир элитных парфюмов и профессиональных пигментов для истинных ценителей красоты и творчества
-                        </p>
+                        <div className="space-y-3">
+                          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground leading-tight">
+                            Ароматы и искусство
+                          </h3>
+                          <p className="text-base sm:text-lg text-foreground/70 leading-relaxed max-w-2xl">
+                            Новые настроения, текстуры и палитры, которые объединяют парфюмерию и визуальное искусство. Картины из запахов, пигменты для сценического образа и смелые коллаборации.
+                          </p>
+                        </div>
 
-                        <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="grid sm:grid-cols-3 gap-3">
+                          <div className="rounded-2xl border border-border/50 bg-card/70 backdrop-blur px-4 py-3 shadow-sm">
+                            <p className="text-sm font-semibold text-foreground mb-1">Кураторские капсулы</p>
+                            <p className="text-xs text-foreground/60">Подборки по настроению и сезону с готовыми сетами.</p>
+                          </div>
+                          <div className="rounded-2xl border border-border/50 bg-card/70 backdrop-blur px-4 py-3 shadow-sm">
+                            <p className="text-sm font-semibold text-foreground mb-1">Арт-пигменты</p>
+                            <p className="text-xs text-foreground/60">Текстуры для визажистов и художников без компромиссов.</p>
+                          </div>
+                          <div className="rounded-2xl border border-border/50 bg-card/70 backdrop-blur px-4 py-3 shadow-sm">
+                            <p className="text-sm font-semibold text-foreground mb-1">Лимитированные релизы</p>
+                            <p className="text-xs text-foreground/60">Редкие ароматы и спецвыпуски, которые не повторяются.</p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
                           <Link
                             href="/products"
-                            className="group/btn inline-flex items-center justify-center px-6 py-3 bg-white/20 backdrop-blur-sm text-white font-semibold rounded-lg hover:bg-white/30 transition-all duration-300 transform hover:scale-105 text-sm"
+                            className="group/btn inline-flex items-center justify-center px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-all duration-300 transform hover:translate-y-[-1px] shadow-lg shadow-primary/25 text-sm"
                           >
                             <svg className="w-5 h-5 mr-2 group-hover/btn:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                             </svg>
-                            <span>Каталог</span>
+                            <span>Смотреть коллекцию</span>
                           </Link>
+                          <Link
+                            href="#trending"
+                            className="inline-flex items-center justify-center px-6 py-3 rounded-xl border border-border/60 bg-card/70 text-foreground font-semibold hover:border-primary/60 hover:text-primary transition-all duration-300 transform hover:translate-y-[-1px] text-sm"
+                          >
+                            <svg className="w-4 h-4 mr-2 transition-transform duration-300 group-hover/btn:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                            </svg>
+                            <span>Что сейчас в тренде</span>
+                          </Link>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-border/40 bg-card/80 backdrop-blur-xl p-6 shadow-xl">
+                        <div className="flex items-start justify-between gap-4 mb-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-[#D4A373] flex items-center justify-center text-white shadow-md">
+                              <Stars className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.08em] text-foreground/60">Сцены и истории</p>
+                              <p className="font-semibold text-foreground leading-snug">Вдохновение через запах и цвет</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-foreground/50">Обновления</p>
+                            <p className="text-lg font-bold text-primary">каждую неделю</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-9 h-9 rounded-lg bg-primary/15 text-primary font-semibold flex items-center justify-center">01</div>
+                            <div>
+                              <p className="font-semibold text-foreground">Слушайте атмосферу</p>
+                              <p className="text-sm text-foreground/60">Тонкие композиции для разных настроений — от камерных вечеров до яркой сцены.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <div className="w-9 h-9 rounded-lg bg-[#6B9999]/20 text-[#3B7171] font-semibold flex items-center justify-center">02</div>
+                            <div>
+                              <p className="font-semibold text-foreground">Соберите сет</p>
+                              <p className="text-sm text-foreground/60">Скомбинируйте аромат, пигмент и аксессуары, чтобы создать цельный образ.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <div className="w-9 h-9 rounded-lg bg-[#D4A373]/20 text-[#D4A373] font-semibold flex items-center justify-center">03</div>
+                            <div>
+                              <p className="font-semibold text-foreground">Покажите миру</p>
+                              <p className="text-sm text-foreground/60">Получите рекомендации стилистов NP и оформите заказ без лишних кликов.</p>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Quick Actions CTA */}
-              <div ref={ctaAnimation.ref} className="group relative opacity-0 scale-95" style={{
-                animation: 'heroFadeInScale 1.0s ease-out 0.6s forwards',
-                opacity: bystryiStartFade.opacity
-              }}>
-                <div ref={bystryiStartFade.ref} className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-accent via-accent/90 to-accent/80 p-6 sm:p-8 shadow-2xl transform group-hover:scale-[1.02] transition-all duration-700 h-full">
-
-                  {/* Декоративные элементы */}
-                  <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-8 translate-x-8"></div>
-                  <div className="absolute bottom-0 left-0 w-12 h-12 bg-white/5 rounded-full translate-y-6 -translate-x-6"></div>
-
-                  <div className="relative z-10 text-center h-full flex flex-col">
-                    {/* Иконка */}
-                    <div className="flex-shrink-0 mb-4">
-                      <div className="relative w-12 h-12 sm:w-14 sm:h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500 mx-auto">
-                        <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                      </div>
+                {/* Quick Actions CTA */}
+                <div ref={ctaAnimation.ref} className="group relative opacity-0 scale-95" style={{
+                  animation: 'heroFadeInScale 1.0s ease-out 0.6s forwards',
+                  opacity: bystryiStartFade.opacity
+                }}>
+                  <div ref={bystryiStartFade.ref} className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-background via-card to-primary/10 p-6 sm:p-8 shadow-2xl transform group-hover:scale-[1.02] transition-all duration-700 h-full">
+                    <div className="absolute inset-0 pointer-events-none">
+                      <div className="absolute -top-6 right-4 w-28 h-28 bg-primary/20 blur-2xl"></div>
+                      <div className="absolute bottom-0 left-2 w-32 h-32 bg-[#D4A373]/25 blur-3xl"></div>
+                      <div className="absolute inset-0 opacity-60 mix-blend-overlay bg-[radial-gradient(circle_at_30%_70%,rgba(255,255,255,0.12),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(59,113,113,0.22),transparent_30%)]"></div>
                     </div>
 
-                    {/* Контент */}
-                    <div className="flex-1 flex flex-col justify-between">
-                      <div>
-                        <h3 className="text-lg sm:text-xl font-bold text-white mb-2 leading-tight">
-                          Быстрый старт
-                        </h3>
-                        <p className="text-sm text-white/90 leading-relaxed mb-4">
-                          Выберите направление вашего творческого пути
-                        </p>
+                    <div className="relative z-10 h-full flex flex-col gap-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-primary to-[#D4A373] flex items-center justify-center text-white shadow-md">
+                            <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.08em] text-foreground/60">Быстрый старт</p>
+                            <h3 className="text-lg sm:text-xl font-bold text-foreground leading-tight">Начните с готовых сценариев</h3>
+                          </div>
+                        </div>
+                        <span className="px-3 py-1 rounded-full border border-border/50 bg-card/80 text-xs font-semibold text-foreground/70">~2 минуты</span>
                       </div>
 
-                      <div className="space-y-2">
+                      <p className="text-sm text-foreground/70 leading-relaxed">
+                        Подберите маршрут под себя: посмотреть тренды, вдохновиться отзывами или сразу уйти в каталог. Светлая и тёмная темы теперь выглядят одинаково чисто.
+                      </p>
+
+                      <div className="space-y-3">
                         <Link
                           href="#trending"
-                          className="group/btn w-full inline-flex items-center justify-center px-4 py-2 bg-white/20 backdrop-blur-sm text-white font-semibold rounded-lg hover:bg-white/30 transition-all duration-300 transform hover:scale-105 text-sm"
+                          className="group/btn w-full inline-flex items-center justify-between px-4 py-3 rounded-2xl border border-border/60 bg-card/80 backdrop-blur hover:border-primary/50 hover:-translate-y-0.5 transition-all duration-300"
                         >
-                          <svg className="w-4 h-4 mr-2 group-hover/btn:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-primary/15 text-primary font-semibold flex items-center justify-center">1</div>
+                            <div className="text-left">
+                              <p className="text-sm font-semibold text-foreground">Сразу к популярному</p>
+                              <p className="text-xs text-foreground/60">Последние хиты и капсульные подборки.</p>
+                            </div>
+                          </div>
+                          <svg className="w-4 h-4 text-foreground/60 group-hover/btn:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
-                          <span>Популярное</span>
                         </Link>
 
                         <Link
                           href="#testimonials"
-                          className="group/btn w-full inline-flex items-center justify-center px-4 py-2 bg-white/20 backdrop-blur-sm text-white font-semibold rounded-lg hover:bg-white/30 transition-all duration-300 transform hover:scale-105 text-sm"
+                          className="group/btn w-full inline-flex items-center justify-between px-4 py-3 rounded-2xl border border-border/60 bg-card/80 backdrop-blur hover:border-primary/50 hover:-translate-y-0.5 transition-all duration-300"
                         >
-                          <svg className="w-4 h-4 mr-2 group-hover/btn:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-[#6B9999]/15 text-[#3B7171] font-semibold flex items-center justify-center">2</div>
+                            <div className="text-left">
+                              <p className="text-sm font-semibold text-foreground">Убедиться по отзывам</p>
+                              <p className="text-xs text-foreground/60">Реальные истории клиентов и их любимые ароматы.</p>
+                            </div>
+                          </div>
+                          <svg className="w-4 h-4 text-foreground/60 group-hover/btn:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
-                          <span>Отзывы</span>
                         </Link>
 
                         <Link
                           href="/products"
-                          className="group/btn w-full inline-flex items-center justify-center px-4 py-2 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-all duration-300 transform hover:scale-105 text-sm"
+                          className="group/btn w-full inline-flex items-center justify-between px-4 py-3 rounded-2xl border border-primary/60 bg-gradient-to-r from-primary to-[#D4A373] text-white font-semibold hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5 transition-all duration-300"
                         >
-                          <svg className="w-4 h-4 mr-2 group-hover/btn:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-white/20 text-white font-semibold flex items-center justify-center">3</div>
+                            <div className="text-left">
+                              <p className="text-sm font-semibold">Перейти к заказу</p>
+                              <p className="text-xs text-white/80">Полный каталог без лишних экранов.</p>
+                            </div>
+                          </div>
+                          <svg className="w-4 h-4 text-white group-hover/btn:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
-                          <span>Каталог</span>
                         </Link>
                       </div>
                     </div>
@@ -376,17 +456,15 @@ export default function Home() {
             </div>
           </div>
         </div>
-        </div>
       </section>
 
       {/* Trending Now - Creative Product Showcase */}
       <section id="trending" className="py-16 sm:py-20 lg:py-24 relative">
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div ref={trendingHeaderAnimation.ref} className={`text-center mb-12 sm:mb-16 ${
-              trendingHeaderAnimation.isInitiallyVisible ? '' :
-              trendingHeaderAnimation.isVisible ? 'scroll-visible-header' : trendingHeaderAnimation.isExiting ? 'scroll-exiting-header' : 'scroll-hidden-header'
+          <div ref={trendingHeaderAnimation.ref} className={`text-center mb-12 sm:mb-16 ${trendingHeaderAnimation.isInitiallyVisible ? '' :
+            trendingHeaderAnimation.isVisible ? 'scroll-visible-header' : trendingHeaderAnimation.isExiting ? 'scroll-exiting-header' : 'scroll-hidden-header'
             }`}>
-            <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-[#3B7171] rounded-2xl mb-4 sm:mb-6 group hover:shadow-xl hover:shadow-[#D4A373]/20 transition-all duration-300 hover:scale-110 hover:rotate-3 active:scale-95 cursor-pointer animate-logo-water-flow">
+            <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-primary rounded-2xl mb-4 sm:mb-6 group hover:shadow-xl hover:shadow-[#D4A373]/20 transition-all duration-300 hover:scale-110 hover:rotate-3 active:scale-95 cursor-pointer animate-logo-water-flow">
               <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white transition-all duration-300 group-hover:scale-110 group-hover:drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
@@ -400,30 +478,52 @@ export default function Home() {
             </p>
           </div>
 
-          <div ref={trendingProductsAnimation.ref} className={`${
-            trendingProductsAnimation.isInitiallyVisible ? '' :
+          <div ref={trendingProductsAnimation.ref} className={`${trendingProductsAnimation.isInitiallyVisible ? '' :
             trendingProductsAnimation.isVisible ? 'scroll-visible-cards' : trendingProductsAnimation.isExiting ? 'scroll-exiting-cards' : 'scroll-hidden-cards'
-          }`}>
+            }`}>
             {creativeProductCards}
           </div>
 
           <div className="text-center mt-16">
             <Link
               href="/products"
-              className="group inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-primary to-secondary text-white font-semibold rounded-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
+              className="group relative inline-flex items-center justify-center px-10 py-5 bg-transparent backdrop-blur-xl border border-primary/40 text-primary font-bold rounded-3xl hover:border-primary/80 hover:bg-primary/10 hover:shadow-2xl hover:shadow-primary/20 transition-all duration-500 transform hover:-translate-y-1 active:scale-95"
             >
-              {/* Иконка каталога */}
-              <svg className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
+              {/* Фоновый градиент при hover */}
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-              {/* Текст */}
-              <span>Смотреть каталог</span>
+              {/* Сверкающий эффект */}
+              <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-transparent via-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform -skew-x-12 group-hover:animate-pulse" />
 
-              {/* Стрелка */}
-              <svg className="w-4 h-4 ml-3 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
+              {/* Основной контент */}
+              <div className="relative flex items-center gap-4">
+                {/* Иконка каталога с эффектом */}
+                <div className="relative">
+                  <svg className="w-6 h-6 group-hover:rotate-12 group-hover:scale-110 transition-all duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  {/* Звездочки эффекта */}
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-ping" />
+                  <div className="absolute -bottom-1 -left-1 w-1.5 h-1.5 bg-[#D4A373] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-ping animation-delay-200" />
+                </div>
+
+                {/* Текст с градиентом */}
+                <span className="text-lg bg-gradient-to-r from-primary to-[#D4A373] bg-clip-text text-transparent group-hover:from-[#D4A373] group-hover:to-primary transition-all duration-500">
+                  Открыть полный каталог
+                </span>
+
+                {/* Стрелка с эффектом */}
+                <div className="relative">
+                  <svg className="w-5 h-5 group-hover:translate-x-2 group-hover:scale-110 transition-all duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                  {/* Светящийся след */}
+                  <div className="absolute inset-0 bg-primary/20 rounded-full blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                </div>
+              </div>
+
+              {/* Краевой эффект */}
+              <div className="absolute inset-0 rounded-3xl border border-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             </Link>
           </div>
         </div>
@@ -433,16 +533,15 @@ export default function Home() {
       <section className="py-32 relative">
         {/* Elegant background with subtle scent patterns */}
         <div className="absolute inset-0 pointer-events-none opacity-3">
-          <div className="absolute top-10 right-10 w-32 h-32 rounded-full bg-[#3B7171]/20 blur-xl"></div>
+          <div className="absolute top-10 right-10 w-32 h-32 rounded-full bg-primary/20 blur-xl"></div>
           <div className="absolute bottom-20 left-20 w-24 h-24 rounded-full bg-[#D4A373]/20 blur-xl"></div>
           <div className="absolute top-1/2 left-1/3 w-16 h-16 rounded-full bg-[#6B9999]/20 blur-xl"></div>
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div ref={excellenceHeaderAnimation.ref} className={`text-center mb-20 ${
-            excellenceHeaderAnimation.isInitiallyVisible ? '' :
+          <div ref={excellenceHeaderAnimation.ref} className={`text-center mb-20 ${excellenceHeaderAnimation.isInitiallyVisible ? '' :
             excellenceHeaderAnimation.isVisible ? 'scroll-visible-header' : excellenceHeaderAnimation.isExiting ? 'scroll-exiting-header' : 'scroll-hidden-header'
-          }`}>
+            }`}>
             <h2 className="text-4xl md:text-6xl font-bold text-foreground mb-8">
               <span className="bg-gradient-to-r from-[#3B7171] via-[#6B9999] to-[#D4A373] bg-clip-text text-transparent">
                 Ваше преимущество с NP
@@ -454,10 +553,9 @@ export default function Home() {
           </div>
 
           {/* Customer Benefits Showcase */}
-          <div ref={excellenceCardsAnimation.ref} className={`mb-20 ${
-            excellenceCardsAnimation.isInitiallyVisible ? '' :
+          <div ref={excellenceCardsAnimation.ref} className={`mb-20 ${excellenceCardsAnimation.isInitiallyVisible ? '' :
             excellenceCardsAnimation.isVisible ? 'scroll-visible-cards' : excellenceCardsAnimation.isExiting ? 'scroll-exiting-cards' : 'scroll-hidden-cards'
-          }`}>
+            }`}>
             {/* Top Row - Core Benefits */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
               {/* Authentic Luxury */}
@@ -484,11 +582,11 @@ export default function Home() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-3 bg-card/40 rounded-lg border border-border/30">
                       <span className="text-sm text-foreground/70">Сертификаты подлинности</span>
-                      <span className="text-sm font-bold text-[#3B7171]">✓ Включены</span>
+                      <span className="text-sm font-bold text-primary">✓ Включены</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-card/40 rounded-lg border border-border/30">
                       <span className="text-sm text-foreground/70">Гарантия качества</span>
-                      <span className="text-sm font-bold text-[#3B7171]">Пожизненная</span>
+                      <span className="text-sm font-bold text-primary">Пожизненная</span>
                     </div>
                   </div>
                 </div>
@@ -580,7 +678,7 @@ export default function Home() {
 
                   <div className="space-y-4">
                     <div className="flex items-start space-x-4 p-4 bg-gradient-to-r from-[#3B7171]/5 to-[#6B9999]/5 rounded-xl border border-[#3B7171]/20">
-                      <div className="w-10 h-10 bg-[#3B7171] rounded-xl flex items-center justify-center flex-shrink-0">
+                      <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center flex-shrink-0">
                         <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                         </svg>
@@ -636,19 +734,19 @@ export default function Home() {
                     <div className="relative">
                       <div className="flex justify-between items-center mb-4">
                         <span className="text-sm font-medium text-foreground">Путь клиента к идеальному аромату</span>
-                        <span className="text-sm text-[#3B7171] font-bold">4.9/5</span>
+                        <span className="text-sm text-primary font-bold">4.9/5</span>
                       </div>
 
                       {/* Journey Steps */}
                       <div className="space-y-3">
                         <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-[#3B7171]/10 to-[#6B9999]/10 rounded-lg">
-                          <div className="w-8 h-8 bg-[#3B7171] rounded-full flex items-center justify-center flex-shrink-0">
+                          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
                             <span className="text-xs font-bold text-white">1</span>
                           </div>
                           <div className="flex-1">
                             <span className="text-sm font-medium text-foreground">Консультация</span>
                             <div className="w-full bg-secondary rounded-full h-1 mt-1">
-                              <div className="bg-[#3B7171] h-1 rounded-full" style={{ width: '100%' }}></div>
+                              <div className="bg-primary h-1 rounded-full" style={{ width: '100%' }}></div>
                             </div>
                           </div>
                         </div>
@@ -682,7 +780,7 @@ export default function Home() {
                     {/* Satisfaction Stats */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center p-4 bg-card/40 rounded-lg border border-border/30">
-                        <div className="text-2xl font-bold text-[#3B7171] mb-1">98%</div>
+                        <div className="text-2xl font-bold text-primary mb-1">98%</div>
                         <div className="text-xs text-foreground/60">Повторные покупки</div>
                       </div>
                       <div className="text-center p-4 bg-card/40 rounded-lg border border-border/30">
@@ -697,10 +795,9 @@ export default function Home() {
           </div>
 
           {/* Customer Promise */}
-          <div ref={excellenceTrustIndicatorsAnimation.ref} className={`text-center ${
-            excellenceTrustIndicatorsAnimation.isInitiallyVisible ? '' :
+          <div ref={excellenceTrustIndicatorsAnimation.ref} className={`text-center ${excellenceTrustIndicatorsAnimation.isInitiallyVisible ? '' :
             excellenceTrustIndicatorsAnimation.isVisible ? 'scroll-visible-stats' : excellenceTrustIndicatorsAnimation.isExiting ? 'scroll-exiting-stats' : 'scroll-hidden-stats'
-          }`}>
+            }`}>
             <div className="max-w-4xl mx-auto">
               <div className="glass-card rounded-3xl p-8 md:p-12 shadow-xl border border-white/20">
                 <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-6">
@@ -752,12 +849,11 @@ export default function Home() {
       <section className="py-32 relative">
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div ref={journeyHeaderAnimation.ref} className={`text-center mb-20 ${
-            journeyHeaderAnimation.isInitiallyVisible ? '' :
+          <div ref={journeyHeaderAnimation.ref} className={`text-center mb-20 ${journeyHeaderAnimation.isInitiallyVisible ? '' :
             journeyHeaderAnimation.isVisible ? 'scroll-visible-header' : journeyHeaderAnimation.isExiting ? 'scroll-exiting-header' : 'scroll-hidden-header'
-          }`}>
+            }`}>
             {/* Header Icon - фирменный бирюзовый NP Academy */}
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-[#3B7171] rounded-full mb-8 shadow-xl group hover:shadow-xl hover:shadow-[#D4A373]/20 transition-all duration-300 hover:scale-110 hover:rotate-3 active:scale-95 cursor-pointer animate-logo-water-flow">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-primary rounded-full mb-8 shadow-xl group hover:shadow-xl hover:shadow-[#D4A373]/20 transition-all duration-300 hover:scale-110 hover:rotate-3 active:scale-95 cursor-pointer animate-logo-water-flow">
               <svg className="w-10 h-10 text-white transition-all duration-300 group-hover:scale-110 group-hover:drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
@@ -772,10 +868,9 @@ export default function Home() {
           </div>
 
           {/* Customer Journey Timeline - Completely New Design */}
-          <div ref={journeyCardsAnimation.ref} className={`relative mb-20 ${
-            journeyCardsAnimation.isInitiallyVisible ? '' :
+          <div ref={journeyCardsAnimation.ref} className={`relative mb-20 ${journeyCardsAnimation.isInitiallyVisible ? '' :
             journeyCardsAnimation.isVisible ? 'scroll-visible-cards' : journeyCardsAnimation.isExiting ? 'scroll-exiting-cards' : 'scroll-hidden-cards'
-          }`}>
+            }`}>
             {/* Central Timeline Line */}
             <div className="absolute left-1/2 transform -translate-x-1/2 top-0 bottom-0 w-1 bg-gradient-to-b from-[#3B7171] via-[#6B9999] to-[#D4A373] rounded-full opacity-30"></div>
 
@@ -786,7 +881,7 @@ export default function Home() {
                 <div className="w-1/2 pr-12 text-right">
                   <div className="group relative">
                     {/* Timeline Dot */}
-                    <div className="absolute right-0 top-8 transform translate-x-1/2 w-6 h-6 bg-[#3B7171] rounded-full border-4 border-card shadow-lg group-hover:scale-125 transition-transform duration-300 z-10"></div>
+                    <div className="absolute right-0 top-8 transform translate-x-1/2 w-6 h-6 bg-primary rounded-full border-4 border-card shadow-lg group-hover:scale-125 transition-transform duration-300 z-10"></div>
 
                     <div className="bg-gradient-to-l from-[#3B7171]/10 to-transparent rounded-2xl p-8 shadow-xl border border-white/10 transform group-hover:scale-105 transition-all duration-500 hover:shadow-2xl">
                       <div className="flex flex-col items-end">
@@ -800,7 +895,7 @@ export default function Home() {
                           Мир NP Perfumes открывает перед вами двери в элитную парфюмерию и профессиональные пигменты премиум-класса
                         </p>
                         <div className="text-right">
-                          <span className="inline-flex items-center text-sm text-[#3B7171] font-medium">
+                          <span className="inline-flex items-center text-sm text-primary font-medium">
                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                             </svg>
@@ -884,10 +979,9 @@ export default function Home() {
 
           {/* Why Choose Us - Premium Store Advantages */}
           <div className="max-w-7xl mx-auto">
-            <div ref={journeyWhyChooseAnimation.ref} className={`text-center mb-16 ${
-              journeyWhyChooseAnimation.isInitiallyVisible ? '' :
+            <div ref={journeyWhyChooseAnimation.ref} className={`text-center mb-16 ${journeyWhyChooseAnimation.isInitiallyVisible ? '' :
               journeyWhyChooseAnimation.isVisible ? 'scroll-visible-header' : journeyWhyChooseAnimation.isExiting ? 'scroll-exiting-header' : 'scroll-hidden-header'
-            }`}>
+              }`}>
               <h3 className="text-4xl md:text-6xl font-bold text-foreground mb-8">
                 <span className="bg-gradient-to-r from-[#3B7171] via-[#6B9999] to-[#D4A373] bg-clip-text text-transparent">
                   Почему выбирают нас
@@ -899,10 +993,9 @@ export default function Home() {
             </div>
 
             {/* Advantages Grid */}
-            <div ref={journeyAdvantagesAnimation.ref} className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16 ${
-              journeyAdvantagesAnimation.isInitiallyVisible ? '' :
+            <div ref={journeyAdvantagesAnimation.ref} className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16 ${journeyAdvantagesAnimation.isInitiallyVisible ? '' :
               journeyAdvantagesAnimation.isVisible ? 'scroll-visible-cards' : journeyAdvantagesAnimation.isExiting ? 'scroll-exiting-cards' : 'scroll-hidden-cards'
-            }`}>
+              }`}>
               {/* Advantage 1 - Premium Collection */}
               <div className="group relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-[#3B7171] to-[#6B9999] rounded-3xl transform rotate-1 group-hover:rotate-0 transition-transform duration-500 opacity-10 group-hover:opacity-20"></div>
@@ -918,7 +1011,7 @@ export default function Home() {
                       Только проверенные мировые бренды парфюмерии с многолетней историей и безупречной репутацией. От классических ароматов до современных композиций.
                     </p>
                     <div className="mt-6 pt-4 border-t border-[#3B7171]/20">
-                      <div className="flex items-center justify-center space-x-2 text-[#3B7171]">
+                      <div className="flex items-center justify-center space-x-2 text-primary">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -1022,7 +1115,7 @@ export default function Home() {
                       Накапливайте бонусы за каждую покупку и получайте эксклюзивные скидки. Специальные предложения для постоянных клиентов.
                     </p>
                     <div className="mt-6 pt-4 border-t border-[#3B7171]/20">
-                      <div className="flex items-center justify-center space-x-2 text-[#3B7171]">
+                      <div className="flex items-center justify-center space-x-2 text-primary">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                         </svg>
@@ -1061,13 +1154,12 @@ export default function Home() {
             </div>
 
             {/* Trust Indicators */}
-            <div ref={journeyMetricsAnimation.ref} className={`bg-gradient-to-r from-[#3B7171]/5 via-[#6B9999]/5 to-[#D4A373]/5 rounded-3xl p-8 md:p-12 backdrop-blur-sm border border-white/10 mb-16 ${
-              journeyMetricsAnimation.isInitiallyVisible ? '' :
+            <div ref={journeyMetricsAnimation.ref} className={`bg-gradient-to-r from-[#3B7171]/5 via-[#6B9999]/5 to-[#D4A373]/5 rounded-3xl p-8 md:p-12 backdrop-blur-sm border border-white/10 mb-16 ${journeyMetricsAnimation.isInitiallyVisible ? '' :
               journeyMetricsAnimation.isVisible ? 'scroll-visible-stats' : journeyMetricsAnimation.isExiting ? 'scroll-exiting-stats' : 'scroll-hidden-stats'
-            }`}>
+              }`}>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
                 <div className="group">
-                  <div className="text-4xl font-bold text-[#3B7171] mb-2 group-hover:scale-110 transition-transform duration-300">5000+</div>
+                  <div className="text-4xl font-bold text-primary mb-2 group-hover:scale-110 transition-transform duration-300">5000+</div>
                   <p className="text-foreground/70">Довольных клиентов</p>
                 </div>
                 <div className="group">
@@ -1085,37 +1177,108 @@ export default function Home() {
               </div>
             </div>
 
-            {/* CTA Section */}
-            <div ref={journeyCtaAnimation.ref} className={`text-center ${
-              journeyCtaAnimation.isInitiallyVisible ? '' :
+            {/* CTA Section - Professional Approach */}
+            <div ref={journeyCtaAnimation.ref} className={`max-w-5xl mx-auto ${journeyCtaAnimation.isInitiallyVisible ? '' :
               journeyCtaAnimation.isVisible ? 'scroll-visible' : journeyCtaAnimation.isExiting ? 'scroll-exiting' : 'scroll-hidden'
-            }`}>
-              <div className="bg-transparent backdrop-blur-lg rounded-3xl p-8 md:p-12 border border-white/30 shadow-xl">
-                <h4 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-                  Начните свое путешествие в мир ароматов
-                </h4>
-                <p className="text-xl text-foreground/70 mb-8 max-w-2xl mx-auto">
-                  Откройте для себя идеальный аромат с помощью наших экспертов
-                </p>
+              }`}>
+              <div className="bg-gradient-to-br from-card/95 via-card/90 to-card/80 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-white/20 shadow-2xl shadow-black/10">
+                {/* Header with professional badge */}
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-primary/10 border border-primary/20 mb-6">
+                    <div className="w-8 h-8 bg-gradient-to-br from-primary to-[#6B9999] rounded-full flex items-center justify-center shadow-md">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <span className="text-primary font-semibold text-sm uppercase tracking-wide">Профессиональный подход</span>
+                  </div>
+
+                  <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3 leading-tight">
+                    Ваш путь к идеальному аромату начинается здесь
+                  </h3>
+                  <p className="text-base md:text-lg text-foreground/70 max-w-2xl mx-auto leading-relaxed">
+                    Мы объединяем экспертные знания, премиум-ассортимент и персонализированный сервис для создания незабываемых ароматических впечатлений
+                  </p>
+                </div>
+
+                {/* Professional steps */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                  <div className="text-center p-4 rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/10">
+                    <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md">
+                      <span className="text-white font-bold text-lg">1</span>
+                    </div>
+                    <h4 className="font-semibold text-foreground mb-2">Выбор направления</h4>
+                    <p className="text-sm text-foreground/60">Определите свой стиль и предпочтения</p>
+                  </div>
+
+                  <div className="text-center p-4 rounded-2xl bg-gradient-to-br from-[#6B9999]/5 to-[#6B9999]/10 border border-[#6B9999]/10">
+                    <div className="w-12 h-12 bg-[#6B9999] rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md">
+                      <span className="text-white font-bold text-lg">2</span>
+                    </div>
+                    <h4 className="font-semibold text-foreground mb-2">Экспертная консультация</h4>
+                    <p className="text-sm text-foreground/60">Получите рекомендации от профессионалов</p>
+                  </div>
+
+                  <div className="text-center p-4 rounded-2xl bg-gradient-to-br from-[#D4A373]/5 to-[#D4A373]/10 border border-[#D4A373]/10">
+                    <div className="w-12 h-12 bg-[#D4A373] rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md">
+                      <span className="text-white font-bold text-lg">3</span>
+                    </div>
+                    <h4 className="font-semibold text-foreground mb-2">Идеальный выбор</h4>
+                    <p className="text-sm text-foreground/60">Найдите аромат, который подчеркнет вашу индивидуальность</p>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Link
                     href="/products"
-                    className="group bg-gradient-to-r from-[#3B7171] to-[#6B9999] text-white px-8 py-4 rounded-2xl font-semibold text-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center"
+                    className="group relative bg-gradient-to-r from-primary via-[#6B9999] to-primary bg-size-200 bg-pos-0 hover:bg-pos-100 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-500 flex items-center justify-center shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:-translate-y-1"
                   >
-                    <svg className="w-6 h-6 mr-3 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <span>Найти свой аромат</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary to-[#6B9999] rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="relative flex items-center gap-3">
+                      <svg className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      <span>Перейти к коллекциям</span>
+                      <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
+                    </div>
                   </Link>
+
                   <button
                     onClick={() => setIsFeedbackModalOpen(true)}
-                    className="group bg-white/80 backdrop-blur-sm border-2 border-[#6B9999]/30 text-[#3B7171] px-8 py-4 rounded-2xl font-semibold text-lg hover:bg-[#6B9999]/10 hover:border-[#6B9999] transition-all duration-300 flex items-center justify-center"
+                    className="group relative bg-transparent border-2 border-primary/60 text-primary px-8 py-4 rounded-2xl font-bold text-lg hover:border-primary hover:bg-primary/5 hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 flex items-center justify-center hover:-translate-y-1"
                   >
-                    <svg className="w-6 h-6 mr-3 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                    <span>Получить консультацию</span>
+                    <div className="flex items-center gap-3">
+                      <svg className="w-6 h-6 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      <span>Экспертная консультация</span>
+                    </div>
                   </button>
+                </div>
+
+                {/* Trust indicators */}
+                <div className="flex flex-wrap justify-center gap-6 mt-8 pt-6 border-t border-border/30">
+                  <div className="flex items-center gap-2 text-sm text-foreground/60">
+                    <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>100% оригинальная продукция</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-foreground/60">
+                    <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Быстрая доставка</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-foreground/60">
+                    <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Профессиональная поддержка</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1126,10 +1289,9 @@ export default function Home() {
       {/* Creator Stories */}
       <section id="testimonials" className="py-24 relative">
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div ref={testimonialsHeaderAnimation.ref} className={`text-center mb-16 ${
-            testimonialsHeaderAnimation.isInitiallyVisible ? '' :
+          <div ref={testimonialsHeaderAnimation.ref} className={`text-center mb-16 ${testimonialsHeaderAnimation.isInitiallyVisible ? '' :
             testimonialsHeaderAnimation.isVisible ? 'scroll-visible-header' : testimonialsHeaderAnimation.isExiting ? 'scroll-exiting-header' : 'scroll-hidden-header'
-          }`}>
+            }`}>
             <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-6 shadow-lg group hover:shadow-xl hover:shadow-primary/20 transition-all duration-300 hover:scale-110 hover:rotate-3 active:scale-95 cursor-pointer animate-logo-water-flow">
               <svg className="w-8 h-8 text-white transition-all duration-300 group-hover:scale-110 group-hover:drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -1144,18 +1306,17 @@ export default function Home() {
           </div>
 
           {/* Testimonials */}
-          <div ref={testimonialsCardsAnimation.ref} className={`grid grid-cols-1 md:grid-cols-3 gap-8 ${
-            testimonialsCardsAnimation.isInitiallyVisible ? '' :
+          <div ref={testimonialsCardsAnimation.ref} className={`grid grid-cols-1 md:grid-cols-3 gap-8 ${testimonialsCardsAnimation.isInitiallyVisible ? '' :
             testimonialsCardsAnimation.isVisible ? 'scroll-visible-cards' : testimonialsCardsAnimation.isExiting ? 'scroll-exiting-cards' : 'scroll-hidden-cards'
-          }`}>
+            }`}>
             <div className="glass-card rounded-3xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
               <div className="flex items-center mb-6">
                 <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mr-4">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z" />
                   </svg>
-                  </div>
-                  <div>
+                </div>
+                <div>
                   <div className="font-semibold text-foreground">Анна К.</div>
                   <div className="text-sm text-foreground/60">Художник-дизайнер</div>
                 </div>
@@ -1166,7 +1327,7 @@ export default function Home() {
               <div className="flex text-[#D4A373]">
                 {'★'.repeat(5)}
               </div>
-                </div>
+            </div>
 
             <div className="glass-card rounded-3xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
               <div className="flex items-center mb-6">
@@ -1174,8 +1335,8 @@ export default function Home() {
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  </div>
-                  <div>
+                </div>
+                <div>
                   <div className="font-semibold text-foreground">Мария С.</div>
                   <div className="text-sm text-foreground/60">Парфюмер</div>
                 </div>
@@ -1186,7 +1347,7 @@ export default function Home() {
               <div className="flex text-[#D4A373]">
                 {'★'.repeat(5)}
               </div>
-                </div>
+            </div>
 
             <div className="glass-card rounded-3xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
               <div className="flex items-center mb-6">
@@ -1194,8 +1355,8 @@ export default function Home() {
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                   </svg>
-                  </div>
-                  <div>
+                </div>
+                <div>
                   <div className="font-semibold text-foreground">Дмитрий В.</div>
                   <div className="text-sm text-foreground/60">Арт-директор</div>
                 </div>
@@ -1205,15 +1366,14 @@ export default function Home() {
               </p>
               <div className="flex text-[#D4A373]">
                 {'★'.repeat(5)}
-                </div>
               </div>
             </div>
+          </div>
 
           {/* Stats */}
-          <div ref={testimonialsStatsAnimation.ref} className={`mt-16 glass-card rounded-3xl p-12 shadow-lg ${
-            testimonialsStatsAnimation.isInitiallyVisible ? '' :
+          <div ref={testimonialsStatsAnimation.ref} className={`mt-16 glass-card rounded-3xl p-12 shadow-lg ${testimonialsStatsAnimation.isInitiallyVisible ? '' :
             testimonialsStatsAnimation.isVisible ? 'scroll-visible-stats' : testimonialsStatsAnimation.isExiting ? 'scroll-exiting-stats' : 'scroll-hidden-stats'
-          }`}>
+            }`}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
               <div className="group">
                 <div className="text-4xl font-bold bg-gradient-to-r from-[#3B7171] to-[#6B9999] bg-clip-text text-transparent mb-2 group-hover:scale-110 transition-transform">
@@ -1257,5 +1417,3 @@ export default function Home() {
     </div>
   )
 }
-
-

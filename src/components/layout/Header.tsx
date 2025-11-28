@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import { MiniCart } from '@/components/cart/MiniCart';
 import { Button, Icon, Input, ThemeToggle } from '@/components/ui';
 
@@ -32,6 +33,7 @@ export const Header: React.FC = () => {
 
   const { state } = useCart();
   const { isAuthenticated, user, logout } = useAuth();
+  const { theme } = useTheme();
   const searchRef = useRef<HTMLInputElement>(null);
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const cartDropdownRef = useRef<HTMLDivElement>(null);
@@ -126,9 +128,9 @@ export const Header: React.FC = () => {
 
   return (
     <>
-      <header className={`transition-all duration-300 fixed top-0 left-0 right-0 z-[100] bg-[#3B7171] backdrop-blur-sm border-b border-white/10 ${isScrolled
-          ? 'shadow-lg shadow-black/20'
-          : 'shadow-sm'
+      <header className={`transition-all duration-300 fixed top-0 left-0 right-0 z-[100] bg-white/80 dark:bg-primary/90 backdrop-blur-sm border-b border-gray-200 dark:border-white/10 ${isScrolled
+        ? 'shadow-lg shadow-black/5 dark:shadow-black/20'
+        : 'shadow-sm'
         }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
@@ -136,7 +138,7 @@ export const Header: React.FC = () => {
             <Link href="/" className="flex items-center group">
               <div className="w-14 h-14 sm:w-20 sm:h-20 lg:w-24 lg:h-24 flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 active:scale-95">
                 <img
-                  src="/navbar-logo.svg"
+                  src={theme === 'dark' ? "/navbar-logo.svg" : "/navbar-logo-black.png"}
                   alt="NP Perfumes"
                   className="w-full h-full object-contain transition-all duration-300 group-hover:scale-110 group-hover:drop-shadow-lg"
                 />
@@ -147,18 +149,18 @@ export const Header: React.FC = () => {
             <nav className="hidden md:flex items-center space-x-1">
               <Link
                 href="/products"
-                className="relative px-4 py-2 text-foreground/70 hover:text-white transition-all duration-300 font-medium rounded-lg hover:bg-white/10 hover:shadow-lg hover:shadow-primary/10 hover:scale-105 active:scale-95 group"
+                className="relative px-4 py-2 text-foreground/70 dark:text-white/80 transition-all duration-300 font-medium rounded-lg hover:scale-105 active:scale-95 group light:hover:text-primary light:hover:bg-primary/5 light:hover:shadow-primary/10 dark:hover:text-black dark:hover:bg-black/10 dark:hover:shadow-black/20"
               >
                 <span className="transition-all duration-300 group-hover:font-semibold">Каталог</span>
-                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0.5 bg-gradient-to-r from-primary to-primary/80 transition-all duration-300 group-hover:w-full group-hover:shadow-sm group-hover:shadow-primary/20"></div>
+                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0.5 transition-all duration-300 group-hover:w-full group-hover:shadow-sm light:group-hover:shadow-primary/20 dark:group-hover:shadow-black/30 light:bg-gradient-to-r light:from-primary light:to-primary/80 dark:bg-gradient-to-r dark:from-black dark:to-black/80"></div>
               </Link>
 
               <Link
                 href="/brands"
-                className="relative px-4 py-2 text-foreground/70 hover:text-white transition-all duration-300 font-medium rounded-lg hover:bg-white/10 hover:shadow-lg hover:shadow-primary/10 hover:scale-105 active:scale-95 group"
+                className="relative px-4 py-2 text-foreground/70 dark:text-white/80 transition-all duration-300 font-medium rounded-lg hover:scale-105 active:scale-95 group light:hover:text-primary light:hover:bg-primary/5 light:hover:shadow-primary/10 dark:hover:text-black dark:hover:bg-black/10 dark:hover:shadow-black/20"
               >
                 <span className="transition-all duration-300 group-hover:font-semibold">Бренды</span>
-                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0.5 bg-gradient-to-r from-primary to-primary/80 transition-all duration-300 group-hover:w-full group-hover:shadow-sm group-hover:shadow-primary/20"></div>
+                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0.5 transition-all duration-300 group-hover:w-full group-hover:shadow-sm light:group-hover:shadow-primary/20 dark:group-hover:shadow-black/30 light:bg-gradient-to-r light:from-primary light:to-primary/80 dark:bg-gradient-to-r dark:from-black dark:to-black/80"></div>
               </Link>
             </nav>
 
@@ -176,8 +178,8 @@ export const Header: React.FC = () => {
                     onBlur={() => setIsSearchFocused(false)}
                     style={{ paddingLeft: '72px' }}
                     className={`w-full pr-12 py-2.5 rounded-full border-2 transition-all duration-300 bg-background/50 backdrop-blur-sm hover:shadow-lg hover:shadow-primary/10 hover:scale-[1.02] focus:scale-100 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none placeholder:text-muted-foreground ${isSearchFocused
-                        ? 'border-primary shadow-xl shadow-primary/20 scale-100'
-                        : 'border-border/50 hover:border-primary/30'
+                      ? 'border-primary shadow-xl shadow-primary/20 scale-100'
+                      : 'border-border/50 hover:border-primary/30'
                       }`}
                   />
                   <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-inner shadow-primary/10 z-10">

@@ -34,21 +34,21 @@ export const Footer: React.FC = () => {
             <div className="flex space-x-4 mb-8">
               <a
                 href="#"
-                className="w-10 h-10 bg-card hover:bg-[#3B7171] rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-lg group"
+                className="w-10 h-10 bg-card hover:bg-primary rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-lg group"
                 aria-label="Instagram"
               >
                 <Instagram className="w-5 h-5 text-foreground/70 group-hover:text-white transition-colors" />
               </a>
               <a
                 href="#"
-                className="w-10 h-10 bg-card hover:bg-[#D4A373] rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-lg group"
+                className="w-10 h-10 bg-card hover:bg-accent rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-lg group"
                 aria-label="Facebook"
               >
                 <Facebook className="w-5 h-5 text-foreground/70 group-hover:text-white transition-colors" />
               </a>
               <a
                 href="#"
-                className="w-10 h-10 bg-card hover:bg-[#3B7171] rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-lg group"
+                className="w-10 h-10 bg-card hover:bg-primary rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-lg group"
                 aria-label="Twitter"
               >
                 <Twitter className="w-5 h-5 text-foreground/70 group-hover:text-white transition-colors" />
@@ -61,25 +61,25 @@ export const Footer: React.FC = () => {
             <h3 className="text-xl font-bold text-foreground mb-6">Каталог</h3>
             <ul className="space-y-3">
               <li>
-                <Link href="/perfumes" className="text-foreground/60 hover:text-[#3B7171] transition-colors duration-300 flex items-center group">
+                <Link href="/perfumes" className="text-foreground/60 hover:text-primary transition-colors duration-300 flex items-center group">
                   <FlaskConical className="w-4 h-4 mr-2" />
                   <span className="group-hover:translate-x-1 transition-transform duration-300">Парфюмерия</span>
                 </Link>
               </li>
               <li>
-                <Link href="/pigments" className="text-foreground/60 hover:text-[#D4A373] transition-colors duration-300 flex items-center group">
+                <Link href="/pigments" className="text-foreground/60 hover:text-accent transition-colors duration-300 flex items-center group">
                   <Palette className="w-4 h-4 mr-2" />
                   <span className="group-hover:translate-x-1 transition-transform duration-300">Пигменты</span>
                 </Link>
               </li>
               <li>
-                <Link href="/brands" className="text-foreground/60 hover:text-[#3B7171] transition-colors duration-300 flex items-center group">
+                <Link href="/brands" className="text-foreground/60 hover:text-primary transition-colors duration-300 flex items-center group">
                   <Award className="w-4 h-4 mr-2" />
                   <span className="group-hover:translate-x-1 transition-transform duration-300">Бренды</span>
                 </Link>
               </li>
               <li>
-                <Link href="/products" className="text-foreground/60 hover:text-[#6B9999] transition-colors duration-300 flex items-center group">
+                <Link href="/products" className="text-foreground/60 hover:text-primary/80 transition-colors duration-300 flex items-center group">
                   <Package className="w-4 h-4 mr-2" />
                   <span className="group-hover:translate-x-1 transition-transform duration-300">Все товары</span>
                 </Link>
@@ -92,27 +92,27 @@ export const Footer: React.FC = () => {
             <h3 className="text-xl font-bold text-foreground mb-6">Поддержка</h3>
             <ul className="space-y-3">
               <li>
-                <Link href="/delivery" className="text-foreground/60 hover:text-[#3B7171] transition-colors duration-300 flex items-center group">
+                <Link href="/delivery" className="text-foreground/60 hover:text-primary transition-colors duration-300 flex items-center group">
                   <Truck className="w-4 h-4 mr-2" />
                   <span className="group-hover:translate-x-1 transition-transform duration-300">Доставка</span>
                 </Link>
               </li>
               <li>
-                <Link href="/returns" className="text-foreground/60 hover:text-[#6B9999] transition-colors duration-300 flex items-center group">
+                <Link href="/returns" className="text-foreground/60 hover:text-primary/80 transition-colors duration-300 flex items-center group">
                   <RotateCcw className="w-4 h-4 mr-2" />
                   <span className="group-hover:translate-x-1 transition-transform duration-300">Возврат</span>
                 </Link>
               </li>
               <li>
-                <Link href="/faq" className="text-foreground/60 hover:text-[#3B7171] transition-colors duration-300 flex items-center group">
+                <Link href="/faq" className="text-foreground/60 hover:text-primary transition-colors duration-300 flex items-center group">
                   <HelpCircle className="w-4 h-4 mr-2" />
                   <span className="group-hover:translate-x-1 transition-transform duration-300">FAQ</span>
                 </Link>
               </li>
               <li>
                 <button
-                  onClick={() => {/* open feedback modal */}}
-                  className="text-foreground/60 hover:text-[#D4A373] transition-colors duration-300 flex items-center group"
+                  onClick={() => {/* open feedback modal */ }}
+                  className="text-foreground/60 hover:text-accent transition-colors duration-300 flex items-center group"
                 >
                   <MessageCircle className="w-4 h-4 mr-2" />
                   <span className="group-hover:translate-x-1 transition-transform duration-300">Обратная связь</span>
@@ -170,9 +170,9 @@ export const Footer: React.FC = () => {
               <span>Создано с любовью к ароматам</span>
             </div>
             <div className="flex items-center space-x-6 text-sm text-foreground/60">
-              <Link href="/privacy" className="hover:text-[#3B7171] transition-colors">Конфиденциальность</Link>
-              <Link href="/terms" className="hover:text-[#3B7171] transition-colors">Условия использования</Link>
-              <Link href="/cookies" className="hover:text-[#3B7171] transition-colors">Cookies</Link>
+              <Link href="/privacy" className="hover:text-primary transition-colors">Конфиденциальность</Link>
+              <Link href="/terms" className="hover:text-primary transition-colors">Условия использования</Link>
+              <Link href="/cookies" className="hover:text-primary transition-colors">Cookies</Link>
             </div>
           </div>
 

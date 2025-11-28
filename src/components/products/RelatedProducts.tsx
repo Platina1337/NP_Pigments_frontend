@@ -220,10 +220,10 @@ export const RelatedProducts: React.FC<RelatedProductsProps> = ({
           </div>
 
           <Link href={`/products?category=${categoryId}`}>
-            <Button variant="secondary" size="sm">
-              Смотреть все
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            <button className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-50 to-purple-50 hover:from-violet-100 hover:to-purple-100 border border-violet-200 hover:border-violet-300 rounded-xl text-violet-700 hover:text-violet-800 transition-all duration-300 hover:shadow-md">
+              <span className="text-sm font-medium">Смотреть все</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+            </button>
           </Link>
         </div>
 
@@ -236,10 +236,10 @@ export const RelatedProducts: React.FC<RelatedProductsProps> = ({
         {/* View All Button */}
         <div className="text-center mt-8">
           <Link href={`/products?category=${categoryId}`}>
-            <Button variant="secondary">
-              Посмотреть все товары категории
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            <button className="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-rose-50 to-pink-50 hover:from-rose-100 hover:to-pink-100 border border-rose-200 hover:border-rose-300 rounded-2xl text-rose-700 hover:text-rose-800 transition-all duration-300 hover:shadow-lg font-semibold">
+              <span>Посмотреть все товары категории</span>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+            </button>
           </Link>
         </div>
       </div>

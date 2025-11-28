@@ -89,12 +89,26 @@ export interface CartItem {
   id: string; // уникальный ID для корзины
   perfume: Perfume;
   quantity: number;
+  productType: 'perfume' | 'pigment';
 }
 
 export interface CartState {
   items: CartItem[];
   total: number;
   itemCount: number;
+  isHydrated?: boolean;
+}
+
+export interface WishlistItem {
+  id: string;
+  productType: 'perfume' | 'pigment';
+  productId: number;
+  productName: string;
+  productImage?: string | null;
+  productPrice?: string;
+  productData?: Perfume;
+  addedAt?: string;
+  serverId?: number;
 }
 
 // Типы для фильтров

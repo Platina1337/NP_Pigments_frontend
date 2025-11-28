@@ -4,13 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Card, Button, Input, Textarea, Icon } from '@/components/ui';
-import { User, Settings, ShoppingBag, LogOut, Save, Edit2, X } from 'lucide-react';
+import { User, Settings, ShoppingBag, LogOut, Save, Edit2, X, Heart } from 'lucide-react';
 import { ProfileForm } from '@/components/profile/ProfileForm';
 import { SettingsForm } from '@/components/profile/SettingsForm';
 import { OrderHistory } from '@/components/profile/OrderHistory';
+import { FavoriteProducts } from '@/components/profile/FavoriteProducts';
 import Loading from '@/components/Loading';
 
-type TabType = 'profile' | 'settings' | 'orders';
+type TabType = 'profile' | 'settings' | 'orders' | 'favorites';
 
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
@@ -59,6 +60,11 @@ export default function ProfilePage() {
       label: 'Заказы',
       icon: ShoppingBag,
     },
+    {
+      id: 'favorites' as TabType,
+      label: 'Избранное',
+      icon: Heart,
+    },
   ];
 
   return (
@@ -88,9 +94,9 @@ export default function ProfilePage() {
         <Card key={`user-info-${profileKey}`} className="p-6 mb-6">
           <div className="flex items-center space-x-4">
             <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center">
-              {user.profile.avatar ? (
+              {user.profile?.avatar ? (
                 <img
-                  src={user.profile.avatar}
+                  src={user.profile?.avatar}
                   alt="Avatar"
                   className="w-16 h-16 rounded-full object-cover"
                 />
@@ -143,6 +149,7 @@ export default function ProfilePage() {
         {activeTab === 'profile' && <ProfileForm />}
         {activeTab === 'settings' && <SettingsForm />}
         {activeTab === 'orders' && <OrderHistory />}
+        {activeTab === 'favorites' && <FavoriteProducts />}
       </div>
     </div>
   );

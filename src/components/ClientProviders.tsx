@@ -1,6 +1,7 @@
 'use client'
 
 import { CartProvider } from "@/context/CartContext"
+import { FavoritesProvider } from "@/context/FavoritesContext"
 
 interface ClientProvidersProps {
   children: React.ReactNode
@@ -8,8 +9,10 @@ interface ClientProvidersProps {
 
 export default function ClientProviders({ children }: ClientProvidersProps) {
   return (
-    <CartProvider>
-      {children}
-    </CartProvider>
+    <FavoritesProvider>
+      <CartProvider>
+        {children}
+      </CartProvider>
+    </FavoritesProvider>
   )
 }

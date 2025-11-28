@@ -12,6 +12,7 @@ export interface Perfume {
   heart_notes?: string
   base_notes?: string
   image?: string
+  images: ProductImage[]
   in_stock: boolean
   featured: boolean
   stock_quantity: number
@@ -31,6 +32,7 @@ export interface Pigment {
   price: number
   weight_gr: number
   image?: string
+  images: ProductImage[]
   in_stock: boolean
   featured: boolean
   stock_quantity: number
@@ -211,4 +213,10 @@ export interface OrderCreateData {
     cart_item_id: number
     quantity: number
   }>
+}
+
+export interface ProductImage {
+  id: number;
+  image: string;
+  alt_text?: string;
 }

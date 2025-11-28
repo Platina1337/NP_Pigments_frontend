@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Heart, Share2, ZoomIn, Facebook, Twitter, Copy, Check } from 'lucide-react';
-import { Perfume, Pigment } from '@/types/api';
+import { Perfume, Pigment, ProductImage as ProductImageModel } from '@/types/api';
 import { getImageUrl } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 
@@ -38,13 +38,19 @@ export const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({ produc
     };
   }, [showShareMenu]);
 
-  // For now, we'll create an array with the main image and some placeholder additional images
-  // In a real app, this would come from the API with multiple images
-  const images = [
-    getImageUrl(product.image || ''),
-    '/placeholder-perfume.svg', // Additional image placeholder
-    '/placeholder-perfume.svg', // Additional image placeholder
+  const allImages = [
+    ...(product.image ? [getImageUrl(product.image)] : []),
+    ...(product.images?.map(img => getImageUrl(img.image)) || [])
   ];
+
+  // Remove duplicates that might occur if the main image is also in the images array
+  const images = Array.from(new Set(allImages));
+
+  // If there are no images, use a placeholder
+  if (images.length === 0) {
+    images.push('/placeholder-perfume.svg');
+  }
+
 
   const handleShare = async () => {
     if (navigator.share) {

@@ -53,7 +53,11 @@ export default function LoginPage() {
       await login(formData.username, formData.password);
       router.push(redirectTo);
     } catch (error) {
-      setError('Неверное имя пользователя или пароль');
+      if (error instanceof Error) {
+        setError(error.message || 'Неверное имя пользователя или пароль');
+      } else {
+        setError('Неверное имя пользователя или пароль');
+      }
     } finally {
       setIsSubmitting(false);
     }

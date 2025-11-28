@@ -6,6 +6,7 @@ import { Perfume, Pigment } from '@/types/api';
 import { formatPrice, formatVolume, formatGender } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { useCart } from '@/context/CartContext';
+import { normalizeProductForCart } from '@/lib/cart-normalizer';
 
 type Product = Perfume | Pigment;
 
@@ -28,9 +29,10 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({ product }) => {
   };
 
   const handleAddToCart = () => {
-    // Add the item multiple times based on quantity
+    const normalized = normalizeProductForCart(product);
+    const productType: 'perfume' | 'pigment' = isPerfume ? 'perfume' : 'pigment';
     for (let i = 0; i < quantity; i++) {
-      addItem(product);
+      addItem(normalized, productType);
     }
   };
 
