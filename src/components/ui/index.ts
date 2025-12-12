@@ -4,3 +4,4 @@ export * from './Card';
 export * from './Icon';
 export * from './OtpInput';
 export * from './ThemeToggle';
+export * from './Textarea';
