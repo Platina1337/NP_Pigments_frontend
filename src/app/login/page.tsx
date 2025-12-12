@@ -55,31 +55,34 @@ export default function LoginPage() {
     try {
       await login(formData.username, formData.password);
       router.push(redirectTo);
-    } catch (error: any) {
-      if (error instanceof Error) {
-        // Проверяем, нет ли пароля (аккаунт создан через Google)
-        if (error.code === 'no_password' || error.use_google_login) {
-          const errorMessage = 'Для этого аккаунта не установлен пароль. Пожалуйста, используйте вход через Google.';
-          setError(errorMessage);
-          setPersistentError(errorMessage); // Сохраняем ошибку для отображения на всех вкладках
-          // Переключаем на метод Google
-          setLoginMethod('google');
+    } catch (err: any) {
+      // Унифицируем структуру ошибки
+      const authError = (err ?? {}) as {
+        code?: string;
+        use_google_login?: boolean;
+        email?: string;
+        message?: string;
+      };
+
+      // Проверяем, нет ли пароля (аккаунт создан через Google)
+      if (authError.code === 'no_password' || authError.use_google_login) {
+        const errorMessage = 'Для этого аккаунта не установлен пароль. Пожалуйста, используйте вход через Google.';
+        setError(errorMessage);
+        setPersistentError(errorMessage); // Сохраняем ошибку для отображения на всех вкладках
+        setLoginMethod('google');
+        return;
+      }
+
+      // Проверяем, требуется ли подтверждение email
+      if (authError.code === 'email_not_verified' || authError.message?.includes('не активирована')) {
+        const email = authError.email || (formData.username.includes('@') ? formData.username : null);
+        if (email) {
+          router.push(`/verify-email?email=${encodeURIComponent(email)}&purpose=login&from=login`);
           return;
         }
-        
-        // Проверяем, требуется ли подтверждение email
-        if (error.code === 'email_not_verified' || error.message?.includes('не активирована')) {
-          const email = error.email || (formData.username.includes('@') ? formData.username : null);
-          if (email) {
-            // Перенаправляем на страницу подтверждения email
-            router.push(`/verify-email?email=${encodeURIComponent(email)}&purpose=login&from=login`);
-            return;
-          }
-        }
-        setError(error.message || 'Неверное имя пользователя или пароль');
-      } else {
-        setError('Неверное имя пользователя или пароль');
       }
+
+      setError(authError.message || 'Неверное имя пользователя или пароль');
     } finally {
       setIsSubmitting(false);
     }
