@@ -171,7 +171,7 @@ function VerifyEmailContent() {
 
             <div className="flex flex-col gap-4">
                 <Button
-                  variant="ghost"
+                  variant="secondary"
                   onClick={handleResend}
                   disabled={resendTimer > 0 || isLoading}
                   className="w-full"
@@ -187,9 +187,9 @@ function VerifyEmailContent() {
                 </Button>
                 
                 <Button
-                    variant="link"
+                    variant="secondary"
                     onClick={() => router.back()}
-                    className="text-foreground/50 hover:text-foreground"
+                    className="text-foreground/70 hover:text-foreground bg-transparent border-0 shadow-none"
                 >
                     <Icon icon={ArrowLeft} size={16} className="mr-2" />
                     Вернуться назад

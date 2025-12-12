@@ -285,8 +285,9 @@ export const ProductExperience: React.FC<ProductExperienceProps> = ({
       if (!isPerfumeProduct(product) && selectedWeightOption) {
         return {
           ...product,
-          price: selectedWeightOption.price.toString(),
-          final_price: selectedWeightOption.final_price,
+          // Приводим к числу, чтобы не конфликтовало с типом Pigment (price:number)
+          price: Number(selectedWeightOption.price),
+          final_price: Number(selectedWeightOption.final_price ?? selectedWeightOption.price),
           discount_price:
             selectedWeightOption.discount_price ?? (product as any).discount_price ?? null,
           discount_percentage:
@@ -295,7 +296,7 @@ export const ProductExperience: React.FC<ProductExperienceProps> = ({
           stock_quantity: selectedWeightOption.stock_quantity,
           in_stock: selectedWeightOption.in_stock,
           is_on_sale: selectedWeightOption.is_on_sale ?? (product as any).is_on_sale,
-        } as typeof product;
+        } as any;
       }
       return product;
     })();

@@ -44,7 +44,9 @@ export const MiniCart: React.FC = () => {
       <div className="max-h-64 overflow-y-auto">
         <div className="divide-y divide-border">
           {items.map((item) => {
-            const unitPrice = item.perfume.final_price ?? parseFloat(item.perfume.price);
+            const unitPrice = item.perfume.final_price !== undefined && item.perfume.final_price !== null
+              ? Number(item.perfume.final_price)
+              : parseFloat(item.perfume.price);
             const originalPrice = parseFloat(item.perfume.price);
             const hasDiscount = unitPrice < originalPrice;
             return (

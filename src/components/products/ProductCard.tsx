@@ -214,7 +214,7 @@ export function ProductCard({ product, isRecent }: ProductCardProps) {
                                 if (adding) return
                                 setAdding(true)
                                 try {
-                                    addItem(product as unknown as Perfume, product.productType)
+                                    addItem(product as any, product.productType)
                                     setJustAdded(true)
                                     setTimeout(() => setJustAdded(false), 1200)
                                 } finally {

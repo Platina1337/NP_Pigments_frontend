@@ -289,8 +289,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           return;
         }
 
-        const serverPerfumes = response.data.perfumes || [];
-        const serverPigments = response.data.pigments || [];
+        const serverPerfumes = (response.data as any)?.perfumes || [];
+        const serverPigments = (response.data as any)?.pigments || [];
 
         const priceMap = new Map<string, any>();
         serverPerfumes.forEach((p: any) => priceMap.set(`perfume-${p.id}`, p));
@@ -321,9 +321,12 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           return item;
         });
 
+        // Фильтруем некорректные позиции, чтобы удовлетворить тип CartItem[]
+        const sanitizedItems = updatedItems.filter(item => item.perfume) as CartItem[];
+
         if (hasPriceChanged) {
           console.log('Cart prices have changed, dispatching SYNC_PRICES.');
-          dispatch({ type: 'SYNC_PRICES', payload: updatedItems });
+          dispatch({ type: 'SYNC_PRICES', payload: sanitizedItems });
         } else {
           console.log('All cart prices are up-to-date.');
         }

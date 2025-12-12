@@ -75,9 +75,9 @@ export const EmailOTPLogin: React.FC<EmailOTPLoginProps> = ({ onBack, purpose, o
       
       <div className="flex items-center justify-between mb-6">
         <Button
-          variant="ghost"
+          variant="secondary"
           onClick={onBack}
-          className="flex items-center space-x-2 px-0 hover:bg-transparent hover:text-primary"
+          className="flex items-center space-x-2 px-0 hover:bg-transparent hover:text-primary bg-transparent border-0 shadow-none"
         >
           <Icon icon={ArrowLeft} size={16} />
           <span>Назад</span>
@@ -158,9 +158,9 @@ export const EmailOTPLogin: React.FC<EmailOTPLoginProps> = ({ onBack, purpose, o
           <div className="space-y-3">
             <Button
               type="button"
-              variant="ghost"
+              variant="secondary"
               onClick={handleResendOTP}
-              className="w-full"
+              className="w-full bg-transparent border-0 shadow-none hover:bg-transparent"
               disabled={isLoading}
             >
                <Icon icon={RefreshCw} size={16} className="mr-2" />

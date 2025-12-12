@@ -76,7 +76,11 @@ export const LoyaltyOverview: React.FC = () => {
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-sm font-semibold">Последние операции</h4>
-              <Button variant="ghost" size="sm" onClick={async () => {
+              <Button
+                variant="secondary"
+                size="sm"
+                className="bg-transparent border-0 shadow-none hover:bg-transparent text-primary"
+                onClick={async () => {
                 const res = await api.loyalty.transactions()
                 if (Array.isArray(res.data)) {
                   setHistory(res.data as LoyaltyTransaction[])

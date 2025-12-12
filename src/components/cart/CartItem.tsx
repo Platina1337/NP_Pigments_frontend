@@ -17,7 +17,9 @@ export const CartItemComponent: React.FC<CartItemProps> = ({
 }) => {
   const { perfume, quantity } = item;
   const originalPrice = parseFloat(perfume.price);
-  const finalPrice = perfume.final_price;
+  const finalPrice = perfume.final_price !== undefined && perfume.final_price !== null
+    ? Number(perfume.final_price)
+    : originalPrice;
   const hasDiscount = finalPrice < originalPrice;
   const itemTotal = finalPrice * quantity;
 

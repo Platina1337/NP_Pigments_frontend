@@ -40,6 +40,6 @@ export const normalizeProductPayload = (payload: any): Perfume | null => {
     stock_quantity: payload.stock_quantity ?? 0,
     created_at: payload.created_at || '',
     updated_at: payload.updated_at || '',
-  };
+  } as any;
 };
 

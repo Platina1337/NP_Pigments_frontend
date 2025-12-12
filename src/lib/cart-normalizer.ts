@@ -13,11 +13,17 @@ export const normalizeProductForCart = (product: Product): CartPerfume => {
   > = {
     id: product.id,
     name: product.name,
-    brand: product.brand,
-    category: product.category,
+    brand: {
+      ...product.brand,
+      description: product.brand.description ?? '',
+    } as any,
+    category: {
+      ...product.category,
+      description: product.category.description ?? '',
+    } as any,
     brand_id: product.brand.id,
     category_id: product.category.id,
-    description: product.description,
+    description: product.description ?? '',
     price: originalPrice.toString(),
     final_price: currentPrice,
     image: product.image ?? null,
