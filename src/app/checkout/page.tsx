@@ -12,7 +12,8 @@ import { PaymentMethodSelector } from '@/components/checkout/PaymentMethodSelect
 import { OrderSummary } from '@/components/checkout/OrderSummary'
 import { CheckoutSteps } from '@/components/checkout/CheckoutSteps'
 import { Button } from '@/components/ui/Button'
-import { api } from '@/lib/api'
+import { api, formatPrice } from '@/lib/api'
+import { LoyaltyAccount } from '@/types'
 
 interface DeliveryData {
   city: string
@@ -43,11 +44,28 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<string>('yookassa')
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [loyalty, setLoyalty] = useState<LoyaltyAccount | null>(null)
+  const [loyaltyToUse, setLoyaltyToUse] = useState(0)
+  const [loyaltyLoading, setLoyaltyLoading] = useState(true)
+
+  const subtotal = cartState.total
+  const maxRedeemByPercent = Math.floor(subtotal * 0.2)
+  const maxRedeem = Math.max(0, Math.min(loyalty?.balance ?? 0, maxRedeemByPercent))
+  const estimatedEarn = Math.max(0, Math.floor(Math.max(subtotal - loyaltyToUse, 0) * 0.05))
 
   // Проверка авторизации
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login?redirect=/checkout')
+    if (!authLoading) {
+      if (!user) {
+        router.push('/login?redirect=/checkout')
+      } else {
+        // Дополнительная проверка токена
+        const accessToken = localStorage.getItem('access_token')
+        if (!accessToken) {
+          console.warn('Checkout: No access token found')
+          router.push('/login?redirect=/checkout')
+        }
+      }
     }
   }, [user, authLoading, router])
 
@@ -57,6 +75,34 @@ export default function CheckoutPage() {
       router.push('/cart')
     }
   }, [cartState.items.length, router])
+
+  // Загружаем баланс лояльности
+  useEffect(() => {
+    const loadLoyalty = async () => {
+      if (!user) {
+        setLoyalty(null)
+        setLoyaltyLoading(false)
+        return
+      }
+      setLoyaltyLoading(true)
+      const response = await api.loyalty.account()
+      if (response.data && typeof response.data === 'object') {
+        setLoyalty(response.data as LoyaltyAccount)
+      }
+      setLoyaltyLoading(false)
+    }
+
+    if (!authLoading) {
+      void loadLoyalty()
+    }
+  }, [authLoading, user])
+
+  // Держим выбранные баллы в рамках допустимого лимита
+  useEffect(() => {
+    if (loyaltyToUse > maxRedeem) {
+      setLoyaltyToUse(maxRedeem)
+    }
+  }, [loyaltyToUse, maxRedeem])
 
   // Расчет доставки при изменении адреса
   const handleDeliverySubmit = async (data: DeliveryData) => {
@@ -86,12 +132,22 @@ export default function CheckoutPage() {
 
   // Создание заказа
   const handleCreateOrder = async () => {
+    if (isProcessing) return
     if (!deliveryData || !selectedDelivery) return
     
     setIsProcessing(true)
     setError(null)
 
     try {
+      // Отладка: проверяем токен и авторизацию
+      console.log('Checkout: Creating order, user:', user)
+      const accessToken = localStorage.getItem('access_token')
+      console.log('Checkout: Access token exists:', !!accessToken)
+
+      if (!accessToken) {
+        throw new Error('Токен авторизации отсутствует. Пожалуйста, войдите в систему заново.')
+      }
+
       // Создаем заказ
       const orderResponse = await api.orders.create({
         delivery_address: deliveryData.address,
@@ -102,9 +158,18 @@ export default function CheckoutPage() {
         delivery_cost: selectedDelivery.cost,
         customer_notes: deliveryData.notes || '',
         payment_method: paymentMethod,
+        loyalty_points: loyaltyToUse,
       })
 
       if (orderResponse.error || !orderResponse.data) {
+        // Специальная обработка ошибки авторизации
+      if (orderResponse.status === 401) {
+        // Очищаем токены и перенаправляем на логин
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        router.push('/login?redirect=/checkout')
+        throw new Error('Сессия истекла. Перенаправляем на страницу входа...')
+      }
         throw new Error(orderResponse.error || 'Ошибка создания заказа')
       }
 
@@ -202,11 +267,58 @@ export default function CheckoutPage() {
 
         {/* Сайдбар с итогами */}
         <div className="lg:col-span-1">
+          <div className="bg-white rounded-lg shadow-sm p-4 mb-4 border border-emerald-50">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm text-gray-500">Баланс программы лояльности</p>
+                <p className="text-xl font-semibold text-foreground">
+                  {loyaltyLoading ? '...' : `${loyalty?.balance ?? 0} баллов`}
+                </p>
+              </div>
+              <span className="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">
+                До 20% за заказ
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <span>Использовать</span>
+                <span>{maxRedeem > 0 ? `${maxRedeem} максимум` : 'недоступно'}</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={maxRedeem}
+                value={loyaltyToUse}
+                disabled={loyaltyLoading || maxRedeem === 0}
+                onChange={(e) => setLoyaltyToUse(Math.min(maxRedeem, Number(e.target.value)))}
+                className="w-full"
+              />
+              <div className="flex items-center space-x-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={maxRedeem}
+                  value={loyaltyToUse}
+                  disabled={loyaltyLoading || maxRedeem === 0}
+                  onChange={(e) => setLoyaltyToUse(Math.min(maxRedeem, Math.max(0, Number(e.target.value))))}
+                  className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <span className="text-sm text-gray-500 whitespace-nowrap">баллов</span>
+              </div>
+              <p className="text-xs text-gray-500">
+                Скидка: {formatPrice(loyaltyToUse)} · После оплаты начислим ≈ {estimatedEarn} баллов
+              </p>
+            </div>
+          </div>
+
           <OrderSummary
             items={cartState.items}
             subtotal={cartState.total}
             deliveryCost={selectedDelivery?.cost || 0}
             deliveryMethod={selectedDelivery?.service}
+            loyaltyDiscount={loyaltyToUse}
+            loyaltyPointsUsed={loyaltyToUse}
           />
 
           {currentStep === 3 && (

@@ -3,15 +3,34 @@
 import { useMemo, useCallback, useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Sparkles, Stars } from 'lucide-react'
-import { useFeaturedProducts, saveBreadcrumbPath, type FeaturedItem } from '@/lib/swr-hooks'
+import { Sparkles, Stars, ShoppingBag, Check, ChevronLeft, ChevronRight, Heart } from 'lucide-react'
+import { Swiper, SwiperSlide } from 'swiper/react'
+import { Autoplay, Navigation, Pagination } from 'swiper/modules'
+import 'swiper/css'
+import 'swiper/css/navigation'
+import 'swiper/css/pagination'
+import 'swiper/css/autoplay'
+import { useFeaturedProducts, saveBreadcrumbPath, type FeaturedItem, usePromotions, useTrending } from '@/lib/swr-hooks'
+import { formatPrice, getImageUrl } from '@/lib/api'
+import { getPriceInfo } from '@/lib/product-pricing'
 import { useScrollAnimation, useScrollFade } from '@/lib/useScrollAnimation'
 import { useTheme } from '@/context/ThemeContext'
+import { useCart } from '@/context/CartContext'
+import { useFavorites } from '@/context/FavoritesContext'
 import FeedbackModal from '@/components/FeedbackModal'
+import { ProductCard } from '@/components/products/ProductCard'
 
 export default function Home() {
-  const { featuredProducts, isLoading } = useFeaturedProducts()
+  const { featuredProducts } = useFeaturedProducts()
   const { theme } = useTheme()
+  const { addItem, state: cartState } = useCart()
+  const { toggleFavorite, isFavorite } = useFavorites()
+  const [addingId, setAddingId] = useState<number | null>(null)
+  const [pendingFavorites, setPendingFavorites] = useState<Set<string>>(new Set())
+  const { promotions: promotionsSlot1, isLoading: promo1Loading } = usePromotions({ slot: 'homepage_deals_1', active: 'true' })
+  const { promotions: promotionsSlot2, isLoading: promo2Loading } = usePromotions({ slot: 'homepage_deals_2', active: 'true' })
+  const { promotions: promotionsSlot3, isLoading: promo3Loading } = usePromotions({ slot: 'homepage_deals_3', active: 'true' })
+  const { trending, isLoading: trendingLoading } = useTrending()
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false)
 
   // Scroll animations for different sections
@@ -58,7 +77,7 @@ export default function Home() {
   const bystryiStartFade = useScrollFade<HTMLDivElement>(150)
 
   const getProductLink = useCallback((item: FeaturedItem) => {
-    return `/products/${item.id}`
+    return `/products/${item.slug || item.id}`
   }, [])
 
   const handleProductClick = useCallback((item: FeaturedItem) => {
@@ -67,10 +86,19 @@ export default function Home() {
     saveBreadcrumbPath(breadcrumbPath);
   }, [])
 
-  const getProductPrice = useCallback((item: FeaturedItem) => {
-    return item.type === 'perfume'
-      ? `${item.price.toLocaleString('ru-RU')} ₽`
-      : `${item.price.toLocaleString('ru-RU')} ₽`
+  const getProductPriceInfo = useCallback((item: FeaturedItem) => {
+    const { currentPrice, originalPrice, hasDiscount } = getPriceInfo(item as any)
+    const discountPercent =
+      hasDiscount && originalPrice > 0
+        ? Math.max(1, Math.round((1 - currentPrice / originalPrice) * 100))
+        : null
+
+    return {
+      current: formatPrice(currentPrice),
+      original: formatPrice(originalPrice),
+      hasDiscount: hasDiscount && originalPrice > currentPrice,
+      discountPercent,
+    }
   }, [])
 
   const getProductVolume = useCallback((item: FeaturedItem) => {
@@ -79,9 +107,304 @@ export default function Home() {
       : `${item.weight_gr} г`
   }, [])
 
+  const mapPromoProducts = useCallback((promo: any) => {
+    const perfumes = (promo.perfumes || []).map((p: any) => ({ ...p, productType: 'perfume' as const }))
+    const pigments = (promo.pigments || []).map((p: any) => ({ ...p, productType: 'pigment' as const }))
+    return [...perfumes, ...pigments]
+  }, [])
+
+  const trendingProducts = useMemo(() => {
+    if (!trending) return []
+    return trending
+      .map((item: any) => {
+        if (!item?.product) return null
+        return { ...item.product, productType: item.product_type }
+      })
+      .filter(Boolean)
+  }, [trending])
+
+
+  const renderPromoBlock = useCallback(
+    (promos: any[], loading: boolean, fallbackTitle: string) => {
+      if (loading) {
+        return (
+          <section className="py-20 relative overflow-hidden">
+            {/* Background effects */}
+            <div className="absolute inset-0 opacity-30">
+              <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-[#D4A373]/20 to-transparent rounded-full blur-3xl"></div>
+            </div>
+
+            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="animate-pulse h-12 w-64 bg-primary/10 rounded-xl mb-8" />
+              <div className="flex space-x-6 overflow-hidden">
+                {[...Array(6)].map((_, idx) => (
+                  <div key={idx} className="flex-shrink-0 w-80 h-96 bg-muted/40 rounded-3xl animate-pulse" />
+                ))}
+              </div>
+            </div>
+          </section>
+        )
+      }
+      const promoList = Array.isArray(promos) ? promos.filter(Boolean) : []
+      if (promoList.length === 0) return null
+
+      // Collect all products from all promos into a single array, limit to 6
+      const allPromoProducts = promoList
+        .flatMap(promo => mapPromoProducts(promo))
+        .slice(0, 6)
+
+
+      return (
+        <section className="py-20 relative overflow-hidden">
+          {/* Background effects */}
+          <div className="absolute inset-0 opacity-40">
+            <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-[#D4A373]/20 to-transparent rounded-full blur-3xl"></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-gradient-radial from-[#6B9999]/10 via-transparent to-transparent rounded-full blur-3xl"></div>
+          </div>
+
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Header with enhanced design */}
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-primary/10 to-[#D4A373]/10 border border-primary/20 mb-6">
+                <div className="w-8 h-8 bg-gradient-to-br from-primary to-[#D4A373] rounded-full flex items-center justify-center animate-pulse">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                  </svg>
+                </div>
+                <span className="text-primary font-semibold text-sm uppercase tracking-wider">Эксклюзивные акции</span>
+              </div>
+
+              <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4 leading-tight">
+                Восточные
+                <span className="bg-gradient-to-r from-primary via-[#6B9999] to-[#D4A373] bg-clip-text text-transparent"> скидки</span>
+              </h2>
+              <p className="text-xl text-foreground/70 max-w-2xl mx-auto leading-relaxed">
+                Специальные предложения от лучших брендов. Экономьте до 30% на премиум парфюмерии
+              </p>
+            </div>
+
+            {/* Swiper carousel promo cards */}
+            <div className="relative">
+              {/* Navigation buttons */}
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
+                <button className="swiper-button-prev-promo group w-12 h-12 bg-white/90 backdrop-blur-sm border border-white/20 rounded-full shadow-lg flex items-center justify-center hover:bg-white hover:shadow-xl transition-all duration-300">
+                  <ChevronLeft className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
+                </button>
+              </div>
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 z-10">
+                <button className="swiper-button-next-promo group w-12 h-12 bg-white/90 backdrop-blur-sm border border-white/20 rounded-full shadow-lg flex items-center justify-center hover:bg-white hover:shadow-xl transition-all duration-300">
+                  <ChevronRight className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
+                </button>
+              </div>
+
+              <Swiper
+                modules={[Autoplay, Navigation, Pagination]}
+                spaceBetween={24}
+                slidesPerView={1.2}
+                loop={allPromoProducts.length > 3}
+                speed={800}
+                navigation={{
+                  nextEl: '.swiper-button-next-promo',
+                  prevEl: '.swiper-button-prev-promo',
+                }}
+                pagination={{
+                  el: '.swiper-pagination-promo',
+                  clickable: true,
+                  dynamicBullets: true,
+                }}
+                autoplay={{
+                  delay: 4000,
+                  disableOnInteraction: false,
+                  pauseOnMouseEnter: true,
+                  stopOnLastSlide: false,
+                  waitForTransition: true,
+                }}
+                breakpoints={{
+                  640: {
+                    slidesPerView: 2.2,
+                    spaceBetween: 20,
+                  },
+                  1024: {
+                    slidesPerView: 3,
+                    spaceBetween: 24,
+                  },
+                  1280: {
+                    slidesPerView: 3.5,
+                    spaceBetween: 28,
+                  },
+                }}
+                className="!pb-12"
+              >
+                {allPromoProducts.map((product: any, index) => (
+                  <SwiperSlide key={`${product.productType}-${product.id}`} className="!h-auto">
+                    <div className="group h-full">
+                      <div className="relative bg-gradient-to-br from-card/95 via-card/90 to-card/80 backdrop-blur-xl rounded-3xl overflow-hidden shadow-xl border border-white/20 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 transform hover:-translate-y-2 hover:scale-[1.02] h-full flex flex-col">
+
+                        {/* Product image */}
+                        <div className="relative aspect-square overflow-hidden">
+                          <Link href={`/products/${product.slug || product.id}`} className="block h-full">
+                            <img
+                              src={getImageUrl(product.image || '')}
+                              alt={product.name || product.title}
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = '/placeholder-perfume.svg';
+                              }}
+                            />
+                          </Link>
+
+                          {/* Overlay gradient on hover */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+                          {/* Action buttons */}
+                          <div className="absolute top-4 right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <button
+                              aria-label="Добавить в избранное"
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const key = `${product.productType}-${product.id}`;
+                                if (pendingFavorites.has(key)) return;
+                                setPendingFavorites(prev => new Set(prev).add(key));
+                                try {
+                                  await toggleFavorite({
+                                    id: product.id,
+                                    productType: product.productType,
+                                    name: product.name || product.title,
+                                    image: product.image,
+                                    price: product.current_price || product.price,
+                                    data: product,
+                                  });
+                                } finally {
+                                  setPendingFavorites(prev => {
+                                    const next = new Set(prev);
+                                    next.delete(key);
+                                    return next;
+                                  });
+                                }
+                              }}
+                              disabled={pendingFavorites.has(`${product.productType}-${product.id}`)}
+                              className={`flex h-10 w-10 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-white/20 transition-colors duration-200 shadow-lg ${
+                                isFavorite(product.id, product.productType)
+                                  ? 'text-red-500'
+                                  : 'text-gray-700 hover:text-red-500'
+                              }`}
+                            >
+                              <Heart className={`h-5 w-5 ${isFavorite(product.id, product.productType) ? 'fill-current' : ''}`} />
+                            </button>
+                            <button
+                              aria-label="Добавить в корзину"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (addingId === product.id) return;
+                                setAddingId(product.id);
+                                try {
+                                  addItem(product, product.productType);
+                                } finally {
+                                  setTimeout(() => setAddingId(null), 1000);
+                                }
+                              }}
+                              disabled={addingId === product.id}
+                              className={`flex h-10 w-10 items-center justify-center rounded-full text-white transition-colors duration-200 shadow-lg ${
+                                addingId === product.id
+                                  ? 'bg-green-500'
+                                  : 'bg-primary hover:bg-primary/90'
+                              }`}
+                            >
+                              {addingId === product.id ? <Check className="h-5 w-5" /> : <ShoppingBag className="h-5 w-5" />}
+                            </button>
+                          </div>
+
+                          {/* Discount badge */}
+                          {(product.current_price || product.price) && (product.original_price || product.old_price) && (
+                            <div className="absolute top-4 left-4">
+                              <div className="relative">
+                                <div className="px-3 py-1 bg-red-500 text-white text-sm font-bold rounded-full shadow-lg">
+                                  -{Math.round(((product.original_price || product.old_price) - (product.current_price || product.price)) / (product.original_price || product.old_price) * 100)}%
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Status badge */}
+                          <div className="absolute bottom-4 left-4 right-4">
+                            <div className="flex items-center justify-between">
+                              <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm shadow-sm ${
+                                product.productType === 'perfume'
+                                  ? 'bg-primary/20 text-white border border-white/20'
+                                  : 'bg-amber-500/20 text-white border border-white/20'
+                              }`}>
+                                {product.productType === 'perfume' ? 'Парфюм' : 'Пигмент'}
+                              </span>
+                              {!product.in_stock && (
+                                <span className="inline-flex items-center rounded-full bg-black/70 backdrop-blur-md border border-white/10 px-3 py-1 text-xs font-medium text-white">
+                                  Нет в наличии
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Product info */}
+                        <div className="flex-1 flex flex-col p-6">
+                          <div className="mb-4">
+                            <Link href={`/products/${product.slug || product.id}`}>
+                              <p className="text-xs uppercase tracking-[0.2em] text-foreground/50 font-medium mb-1.5">
+                                {product.brand?.name || 'Бренд'}
+                              </p>
+                              <h3 className="text-lg font-bold text-foreground leading-tight group-hover:text-primary transition-colors duration-300 line-clamp-2">
+                                {product.name || product.title}
+                              </h3>
+                            </Link>
+                          </div>
+
+                          <div className="mt-auto">
+                            {/* Specs */}
+                            <div className="mb-4 text-sm text-foreground/60">
+                              {product.productType === 'perfume'
+                                ? `${product.volume_ml} мл`
+                                : `${product.weight_gr} г`
+                              }
+                            </div>
+
+                            {/* Pricing */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex flex-col">
+                                <span className="text-xl font-bold text-primary">
+                                  {formatPrice(product.current_price || product.price)}
+                                </span>
+                                {(product.original_price || product.old_price) && (
+                                  <span className="text-sm text-foreground/50 line-through">
+                                    {formatPrice(product.original_price || product.old_price)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+
+              {/* Pagination */}
+              <div className="swiper-pagination-promo flex justify-center mt-6"></div>
+            </div>
+          </div>
+        </section>
+      )
+    },
+    [mapPromoProducts]
+  )
+
   // New creative product cards
   const creativeProductCards = useMemo(() => {
-    if (isLoading || !featuredProducts.length) {
+    if (trendingLoading || !trendingProducts.length) {
       return (
         <div className="flex justify-center py-20">
           <div className="relative">
@@ -94,104 +417,12 @@ export default function Home() {
 
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-        {featuredProducts.slice(0, 6).map((item: FeaturedItem, index) => (
-          <Link
-            key={`${item.type}-${item.id}`}
-            href={getProductLink(item)}
-            onClick={() => handleProductClick(item)}
-            className="group relative glass-card rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 block"
-            style={{
-              animation: `slideInUp 0.8s ease-out ${index * 0.15}s forwards`,
-              opacity: 1,
-              transform: 'translateY(0px) rotate(0deg)'
-            }}
-          >
-            {/* Простой темный фон */}
-            <div className="absolute inset-0 bg-gradient-to-br from-background/50 to-card/50"></div>
-
-            {/* Индикатор типа */}
-            <div className="absolute top-4 right-4 z-10">
-              <div className={`w-2 h-2 rounded-full ${item.type === 'perfume' ? 'bg-primary' : 'bg-orange-500'}`}></div>
-            </div>
-
-            <div className="relative z-10 p-8">
-              {/* Product type badge */}
-              <div className="flex justify-between items-start mb-6">
-                <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${item.type === 'perfume'
-                  ? 'bg-primary/20 text-primary border border-primary/30'
-                  : 'bg-orange-500/20 text-orange-600 border border-orange-500/30'
-                  }`}>
-                  <span className="mr-1">
-                    {item.type === 'perfume' ? (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z" />
-                      </svg>
-                    )}
-                  </span>
-                  {item.type === 'perfume' ? 'Парфюм' : 'Пигмент'}
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-foreground/60 font-medium hover:text-primary transition-colors duration-300 cursor-pointer">{item.brand.name}</div>
-                </div>
-              </div>
-
-              {/* Product image with creative frame */}
-              <div className="relative mb-6">
-                <div className="aspect-square relative overflow-hidden rounded-2xl bg-secondary">
-                  {item.image ? (
-                    <>
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        className="object-cover group-hover:scale-110 transition-transform duration-700"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 25vw"
-                        priority={index < 3}
-                      />
-                      {/* Overlay gradient */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    </>
-                  ) : (
-                    <Image
-                      src={item.type === 'perfume'
-                        ? "/placeholder-perfume.svg"
-                        : "/placeholder-perfume.svg"
-                      }
-                      alt={item.name}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-700"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 25vw"
-                      priority={index < 3}
-                    />
-                  )}
-                </div>
-              </div>
-
-              {/* Product info */}
-              <div className="space-y-3">
-                <h3 className="text-lg font-bold text-foreground leading-tight line-clamp-2 group-hover:text-primary transition-colors duration-300">
-                  {item.name}
-                </h3>
-
-                <div className="flex flex-col">
-                  <span className="text-xl font-bold text-foreground group-hover:text-primary transition-colors duration-300">
-                    {getProductPrice(item)}
-                  </span>
-                  <span className="text-xs text-foreground/60 group-hover:text-foreground/80 transition-colors duration-300">
-                    {getProductVolume(item)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </Link>
+        {trendingProducts.slice(0, 6).map((product: any, index) => (
+          <ProductCard key={`${product.productType}-${product.id}`} product={product} />
         ))}
       </div>
     )
-  }, [featuredProducts, isLoading, getProductLink, getProductPrice, getProductVolume, handleProductClick])
+  }, [trendingProducts, trendingLoading])
 
   return (
     <div className="min-h-screen relative">
@@ -529,323 +760,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* NP Customer Excellence - Your Advantages */}
-      <section className="py-32 relative">
-        {/* Elegant background with subtle scent patterns */}
-        <div className="absolute inset-0 pointer-events-none opacity-3">
-          <div className="absolute top-10 right-10 w-32 h-32 rounded-full bg-primary/20 blur-xl"></div>
-          <div className="absolute bottom-20 left-20 w-24 h-24 rounded-full bg-[#D4A373]/20 blur-xl"></div>
-          <div className="absolute top-1/2 left-1/3 w-16 h-16 rounded-full bg-[#6B9999]/20 blur-xl"></div>
-        </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div ref={excellenceHeaderAnimation.ref} className={`text-center mb-20 ${excellenceHeaderAnimation.isInitiallyVisible ? '' :
-            excellenceHeaderAnimation.isVisible ? 'scroll-visible-header' : excellenceHeaderAnimation.isExiting ? 'scroll-exiting-header' : 'scroll-hidden-header'
-            }`}>
-            <h2 className="text-4xl md:text-6xl font-bold text-foreground mb-8">
-              <span className="bg-gradient-to-r from-[#3B7171] via-[#6B9999] to-[#D4A373] bg-clip-text text-transparent">
-                Ваше преимущество с NP
-              </span>
-            </h2>
-            <p className="text-xl md:text-2xl text-foreground/70 max-w-4xl mx-auto leading-relaxed">
-              Откройте для себя мир премиум парфюмерии, где каждая покупка становится незабываемым опытом
-            </p>
-          </div>
-
-          {/* Customer Benefits Showcase */}
-          <div ref={excellenceCardsAnimation.ref} className={`mb-20 ${excellenceCardsAnimation.isInitiallyVisible ? '' :
-            excellenceCardsAnimation.isVisible ? 'scroll-visible-cards' : excellenceCardsAnimation.isExiting ? 'scroll-exiting-cards' : 'scroll-hidden-cards'
-            }`}>
-            {/* Top Row - Core Benefits */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-              {/* Authentic Luxury */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#3B7171]/10 to-[#3B7171]/5 rounded-3xl opacity-60 group-hover:opacity-80 transition-all duration-500"></div>
-                <div className="relative glass-card rounded-3xl p-8 shadow-xl border border-white/10 group-hover:border-[#3B7171]/30 transition-all duration-500 h-full flex flex-col">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="w-14 h-14 bg-gradient-to-br from-[#3B7171] to-[#6B9999] rounded-2xl flex items-center justify-center shadow-lg">
-                      <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                      </svg>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-3xl font-bold bg-gradient-to-r from-[#3B7171] to-[#6B9999] bg-clip-text text-transparent">100%</div>
-                      <div className="text-sm text-foreground/60 font-medium">Оригинал</div>
-                    </div>
-                  </div>
-
-                  <h3 className="text-xl font-bold text-foreground mb-4">Подлинная роскошь</h3>
-                  <p className="text-foreground/70 leading-relaxed flex-grow mb-6">
-                    Только аутентичные ароматы от ведущих мировых брендов. Каждая бутылочка - это гарантия подлинности и непревзойденного качества.
-                  </p>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-card/40 rounded-lg border border-border/30">
-                      <span className="text-sm text-foreground/70">Сертификаты подлинности</span>
-                      <span className="text-sm font-bold text-primary">✓ Включены</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-card/40 rounded-lg border border-border/30">
-                      <span className="text-sm text-foreground/70">Гарантия качества</span>
-                      <span className="text-sm font-bold text-primary">Пожизненная</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Personal Scent Journey */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#6B9999]/10 to-[#6B9999]/5 rounded-3xl opacity-60 group-hover:opacity-80 transition-all duration-500"></div>
-                <div className="relative glass-card rounded-3xl p-8 shadow-xl border border-white/10 group-hover:border-[#6B9999]/30 transition-all duration-500 h-full flex flex-col">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="w-14 h-14 bg-gradient-to-br from-[#6B9999] to-[#D4A373] rounded-2xl flex items-center justify-center shadow-lg">
-                      <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-3xl font-bold bg-gradient-to-r from-[#6B9999] to-[#D4A373] bg-clip-text text-transparent">24/7</div>
-                      <div className="text-sm text-foreground/60 font-medium">Поддержка</div>
-                    </div>
-                  </div>
-
-                  <h3 className="text-xl font-bold text-foreground mb-4">Персональный аромат</h3>
-                  <p className="text-foreground/70 leading-relaxed flex-grow mb-6">
-                    Наши эксперты помогут найти идеальный аромат именно для вас. Учитываем ваш характер, стиль жизни и предпочтения.
-                  </p>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-card/40 rounded-lg border border-border/30">
-                      <span className="text-sm text-foreground/70">Бесплатная консультация</span>
-                      <span className="text-sm font-bold text-[#6B9999]">✓ Онлайн</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-card/40 rounded-lg border border-border/30">
-                      <span className="text-sm text-foreground/70">Образцы для тестирования</span>
-                      <span className="text-sm font-bold text-[#6B9999]">До 5 ароматов</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Seamless Experience */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#D4A373]/10 to-[#D4A373]/5 rounded-3xl opacity-60 group-hover:opacity-80 transition-all duration-500"></div>
-                <div className="relative glass-card rounded-3xl p-8 shadow-xl border border-white/10 group-hover:border-[#D4A373]/30 transition-all duration-500 h-full flex flex-col">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="w-14 h-14 bg-gradient-to-br from-[#D4A373] to-[#B8956A] rounded-2xl flex items-center justify-center shadow-lg">
-                      <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-3xl font-bold bg-gradient-to-r from-[#D4A373] to-[#B8956A] bg-clip-text text-transparent">1-2 дня</div>
-                      <div className="text-sm text-foreground/60 font-medium">Доставка</div>
-                    </div>
-                  </div>
-
-                  <h3 className="text-xl font-bold text-foreground mb-4">Идеальная доставка</h3>
-                  <p className="text-foreground/70 leading-relaxed flex-grow mb-6">
-                    Быстрая и аккуратная доставка с премиум упаковкой. Отслеживайте заказ на каждом этапе и получайте в идеальном состоянии.
-                  </p>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-card/40 rounded-lg border border-border/30">
-                      <span className="text-sm text-foreground/70">Бесплатная доставка</span>
-                      <span className="text-sm font-bold text-[#D4A373]">От 3000₽</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-card/40 rounded-lg border border-border/30">
-                      <span className="text-sm text-foreground/70">Специальная упаковка</span>
-                      <span className="text-sm font-bold text-[#D4A373]">Элегантная</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Row - Exclusive Perks */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* VIP Experience */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#3B7171]/8 to-[#6B9999]/8 rounded-3xl opacity-70 group-hover:opacity-90 transition-all duration-500"></div>
-                <div className="relative glass-card rounded-3xl p-8 shadow-xl border border-white/15">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-bold text-foreground">VIP-преимущества</h3>
-                    <div className="w-12 h-12 bg-gradient-to-br from-[#3B7171] to-[#6B9999] rounded-2xl flex items-center justify-center shadow-lg">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-start space-x-4 p-4 bg-gradient-to-r from-[#3B7171]/5 to-[#6B9999]/5 rounded-xl border border-[#3B7171]/20">
-                      <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center flex-shrink-0">
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-foreground mb-1">Программа лояльности</h4>
-                        <p className="text-sm text-foreground/70">Накопите баллы и получайте эксклюзивные скидки до 25%</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start space-x-4 p-4 bg-gradient-to-r from-[#6B9999]/5 to-[#D4A373]/5 rounded-xl border border-[#6B9999]/20">
-                      <div className="w-10 h-10 bg-[#6B9999] rounded-xl flex items-center justify-center flex-shrink-0">
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 4v10m0 0l-2-2m2 2l2-2m4-16l2 2m0 0l-2 2m-2-2l2 2" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-foreground mb-1">Эксклюзивные предложения</h4>
-                        <p className="text-sm text-foreground/70">Специальные лимитированные коллекции только для наших клиентов</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start space-x-4 p-4 bg-gradient-to-r from-[#D4A373]/5 to-[#B8956A]/5 rounded-xl border border-[#D4A373]/20">
-                      <div className="w-10 h-10 bg-[#D4A373] rounded-xl flex items-center justify-center flex-shrink-0">
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-foreground mb-1">Персональные рекомендации</h4>
-                        <p className="text-sm text-foreground/70">Индивидуальные подборки на основе ваших предпочтений</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Customer Success Stories */}
-              <div className="group relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#6B9999]/8 to-[#D4A373]/8 rounded-3xl opacity-70 group-hover:opacity-90 transition-all duration-500"></div>
-                <div className="relative glass-card rounded-3xl p-8 shadow-xl border border-white/15">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-bold text-foreground">Истории успеха</h3>
-                    <div className="w-12 h-12 bg-gradient-to-br from-[#6B9999] to-[#D4A373] rounded-2xl flex items-center justify-center shadow-lg">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div className="space-y-6">
-                    {/* Customer Journey Visualization */}
-                    <div className="relative">
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="text-sm font-medium text-foreground">Путь клиента к идеальному аромату</span>
-                        <span className="text-sm text-primary font-bold">4.9/5</span>
-                      </div>
-
-                      {/* Journey Steps */}
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-[#3B7171]/10 to-[#6B9999]/10 rounded-lg">
-                          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs font-bold text-white">1</span>
-                          </div>
-                          <div className="flex-1">
-                            <span className="text-sm font-medium text-foreground">Консультация</span>
-                            <div className="w-full bg-secondary rounded-full h-1 mt-1">
-                              <div className="bg-primary h-1 rounded-full" style={{ width: '100%' }}></div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-[#6B9999]/10 to-[#D4A373]/10 rounded-lg">
-                          <div className="w-8 h-8 bg-[#6B9999] rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs font-bold text-white">2</span>
-                          </div>
-                          <div className="flex-1">
-                            <span className="text-sm font-medium text-foreground">Тестирование образцов</span>
-                            <div className="w-full bg-secondary rounded-full h-1 mt-1">
-                              <div className="bg-[#6B9999] h-1 rounded-full" style={{ width: '100%' }}></div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-[#D4A373]/10 to-[#B8956A]/10 rounded-lg">
-                          <div className="w-8 h-8 bg-[#D4A373] rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs font-bold text-white">3</span>
-                          </div>
-                          <div className="flex-1">
-                            <span className="text-sm font-medium text-foreground">Выбор идеального аромата</span>
-                            <div className="w-full bg-secondary rounded-full h-1 mt-1">
-                              <div className="bg-[#D4A373] h-1 rounded-full" style={{ width: '100%' }}></div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Satisfaction Stats */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-4 bg-card/40 rounded-lg border border-border/30">
-                        <div className="text-2xl font-bold text-primary mb-1">98%</div>
-                        <div className="text-xs text-foreground/60">Повторные покупки</div>
-                      </div>
-                      <div className="text-center p-4 bg-card/40 rounded-lg border border-border/30">
-                        <div className="text-2xl font-bold text-[#6B9999] mb-1">15 мин</div>
-                        <div className="text-xs text-foreground/60">Среднее время выбора</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Customer Promise */}
-          <div ref={excellenceTrustIndicatorsAnimation.ref} className={`text-center ${excellenceTrustIndicatorsAnimation.isInitiallyVisible ? '' :
-            excellenceTrustIndicatorsAnimation.isVisible ? 'scroll-visible-stats' : excellenceTrustIndicatorsAnimation.isExiting ? 'scroll-exiting-stats' : 'scroll-hidden-stats'
-            }`}>
-            <div className="max-w-4xl mx-auto">
-              <div className="glass-card rounded-3xl p-8 md:p-12 shadow-xl border border-white/20">
-                <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-6">
-                  Наше обещание клиентам
-                </h3>
-                <p className="text-lg text-foreground/80 mb-8 leading-relaxed">
-                  Каждый аромат, который вы выбираете у нас, становится частью вашей истории успеха.
-                  Мы гарантируем не просто покупку, а незабываемый опыт премиум обслуживания.
-                </p>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-gradient-to-br from-[#3B7171] to-[#6B9999] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <h4 className="font-semibold text-foreground mb-2">Подлинность</h4>
-                    <p className="text-sm text-foreground/70">100% оригинальная продукция от брендов</p>
-                  </div>
-
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-gradient-to-br from-[#6B9999] to-[#D4A373] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                      </svg>
-                    </div>
-                    <h4 className="font-semibold text-foreground mb-2">Доверие</h4>
-                    <p className="text-sm text-foreground/70">25+ лет опыта и тысячи довольных клиентов</p>
-                  </div>
-
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-gradient-to-br from-[#D4A373] to-[#B8956A] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                    </div>
-                    <h4 className="font-semibold text-foreground mb-2">Удобство</h4>
-                    <p className="text-sm text-foreground/70">Простой процесс от выбора до доставки</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Creative Journey - The Path to Mastery */}
       <section className="py-32 relative">
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -859,15 +774,8 @@ export default function Home() {
               </svg>
             </div>
 
-            <h2 className="text-5xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
-              Путь к мастерству
-            </h2>
-            <p className="text-2xl text-foreground/80 max-w-4xl mx-auto leading-relaxed font-light">
-              Искусство создания парфюма - это путешествие от вдохновения к совершенству
-            </p>
           </div>
 
-          {/* Customer Journey Timeline - Completely New Design */}
           <div ref={journeyCardsAnimation.ref} className={`relative mb-20 ${journeyCardsAnimation.isInitiallyVisible ? '' :
             journeyCardsAnimation.isVisible ? 'scroll-visible-cards' : journeyCardsAnimation.isExiting ? 'scroll-exiting-cards' : 'scroll-hidden-cards'
             }`}>
@@ -1112,14 +1020,14 @@ export default function Home() {
                     </div>
                     <h4 className="text-2xl font-bold text-foreground mb-4">Программа лояльности</h4>
                     <p className="text-foreground/70 leading-relaxed flex-grow">
-                      Накапливайте бонусы за каждую покупку и получайте эксклюзивные скидки. Специальные предложения для постоянных клиентов.
+                      Возвращаем 5% от каждой покупки баллами на ваш счет. Используйте баллы для оплаты следующих заказов.
                     </p>
                     <div className="mt-6 pt-4 border-t border-[#3B7171]/20">
                       <div className="flex items-center justify-center space-x-2 text-primary">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                         </svg>
-                        <span className="text-sm font-medium">До 15% кэшбэк</span>
+                        <span className="text-sm font-medium">5% кэшбэк на всё</span>
                       </div>
                     </div>
                   </div>
@@ -1177,114 +1085,15 @@ export default function Home() {
               </div>
             </div>
 
-            {/* CTA Section - Professional Approach */}
-            <div ref={journeyCtaAnimation.ref} className={`max-w-5xl mx-auto ${journeyCtaAnimation.isInitiallyVisible ? '' :
-              journeyCtaAnimation.isVisible ? 'scroll-visible' : journeyCtaAnimation.isExiting ? 'scroll-exiting' : 'scroll-hidden'
-              }`}>
-              <div className="bg-gradient-to-br from-card/95 via-card/90 to-card/80 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-white/20 shadow-2xl shadow-black/10">
-                {/* Header with professional badge */}
-                <div className="text-center mb-8">
-                  <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-primary/10 border border-primary/20 mb-6">
-                    <div className="w-8 h-8 bg-gradient-to-br from-primary to-[#6B9999] rounded-full flex items-center justify-center shadow-md">
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <span className="text-primary font-semibold text-sm uppercase tracking-wide">Профессиональный подход</span>
-                  </div>
-
-                  <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3 leading-tight">
-                    Ваш путь к идеальному аромату начинается здесь
-                  </h3>
-                  <p className="text-base md:text-lg text-foreground/70 max-w-2xl mx-auto leading-relaxed">
-                    Мы объединяем экспертные знания, премиум-ассортимент и персонализированный сервис для создания незабываемых ароматических впечатлений
-                  </p>
-                </div>
-
-                {/* Professional steps */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                  <div className="text-center p-4 rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/10">
-                    <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md">
-                      <span className="text-white font-bold text-lg">1</span>
-                    </div>
-                    <h4 className="font-semibold text-foreground mb-2">Выбор направления</h4>
-                    <p className="text-sm text-foreground/60">Определите свой стиль и предпочтения</p>
-                  </div>
-
-                  <div className="text-center p-4 rounded-2xl bg-gradient-to-br from-[#6B9999]/5 to-[#6B9999]/10 border border-[#6B9999]/10">
-                    <div className="w-12 h-12 bg-[#6B9999] rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md">
-                      <span className="text-white font-bold text-lg">2</span>
-                    </div>
-                    <h4 className="font-semibold text-foreground mb-2">Экспертная консультация</h4>
-                    <p className="text-sm text-foreground/60">Получите рекомендации от профессионалов</p>
-                  </div>
-
-                  <div className="text-center p-4 rounded-2xl bg-gradient-to-br from-[#D4A373]/5 to-[#D4A373]/10 border border-[#D4A373]/10">
-                    <div className="w-12 h-12 bg-[#D4A373] rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md">
-                      <span className="text-white font-bold text-lg">3</span>
-                    </div>
-                    <h4 className="font-semibold text-foreground mb-2">Идеальный выбор</h4>
-                    <p className="text-sm text-foreground/60">Найдите аромат, который подчеркнет вашу индивидуальность</p>
-                  </div>
-                </div>
-
-                {/* Action buttons */}
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link
-                    href="/products"
-                    className="group relative bg-gradient-to-r from-primary via-[#6B9999] to-primary bg-size-200 bg-pos-0 hover:bg-pos-100 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-500 flex items-center justify-center shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:-translate-y-1"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary to-[#6B9999] rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="relative flex items-center gap-3">
-                      <svg className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                      <span>Перейти к коллекциям</span>
-                      <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                      </svg>
-                    </div>
-                  </Link>
-
-                  <button
-                    onClick={() => setIsFeedbackModalOpen(true)}
-                    className="group relative bg-transparent border-2 border-primary/60 text-primary px-8 py-4 rounded-2xl font-bold text-lg hover:border-primary hover:bg-primary/5 hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 flex items-center justify-center hover:-translate-y-1"
-                  >
-                    <div className="flex items-center gap-3">
-                      <svg className="w-6 h-6 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      <span>Экспертная консультация</span>
-                    </div>
-                  </button>
-                </div>
-
-                {/* Trust indicators */}
-                <div className="flex flex-wrap justify-center gap-6 mt-8 pt-6 border-t border-border/30">
-                  <div className="flex items-center gap-2 text-sm text-foreground/60">
-                    <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>100% оригинальная продукция</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-foreground/60">
-                    <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Быстрая доставка</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-foreground/60">
-                    <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Профессиональная поддержка</span>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
+
+      {/* Promotion slots */}
+      {renderPromoBlock(promotionsSlot1, promo1Loading, 'Специальные предложения')}
+      {renderPromoBlock(promotionsSlot2, promo2Loading, 'Акции брендов')}
+      {renderPromoBlock(promotionsSlot3, promo3Loading, 'Акции категорий')}
+
 
       {/* Creator Stories */}
       <section id="testimonials" className="py-24 relative">

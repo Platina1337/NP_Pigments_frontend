@@ -237,10 +237,10 @@ export const ProfileForm: React.FC = () => {
           <Button
             onClick={() => setIsEditing(true)}
             variant="secondary"
-            className="flex items-center space-x-2"
+            className="btn-with-icon"
             disabled={isUpdating}
           >
-            <Icon icon={Edit2} size={16} />
+            <Icon icon={Edit2} size={16} className="flex-shrink-0" />
             <span>{isUpdating ? 'Обновление...' : 'Редактировать'}</span>
           </Button>
         )}
@@ -259,7 +259,7 @@ export const ProfileForm: React.FC = () => {
                 />
               ) : (
                 <span className="text-primary-foreground font-serif font-bold text-2xl">
-                  {user.first_name?.[0] || user.username[0].toUpperCase()}
+                  {user.profile?.first_name?.[0] || user.username[0].toUpperCase()}
                 </span>
               )}
             </div>
@@ -274,7 +274,8 @@ export const ProfileForm: React.FC = () => {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-foreground">
-              {user.first_name} {user.last_name}
+              {user.profile?.first_name || ''} {user.profile?.last_name || ''}
+              {(!user.profile?.first_name && !user.profile?.last_name) && user.username}
             </h3>
             <p className="text-foreground/70">{user.username}</p>
             <p className="text-sm text-foreground/50">
@@ -283,141 +284,138 @@ export const ProfileForm: React.FC = () => {
           </div>
         </div>
 
-        {/* Form Fields */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* First Name */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Имя
-            </label>
-            {isEditing ? (
-              <div className="space-y-2">
-                <div className="relative">
-                  <Icon icon={User} size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground/50" />
-                  <Input
-                    type="text"
-                    value={formData.first_name}
-                    onChange={(e) => handleFieldChange('first_name', e.target.value)}
-                    className={`pl-10 ${errors.first_name ? 'border-red-500' : ''}`}
-                    placeholder="Введите имя"
-                    maxLength={50}
-                  />
-                </div>
-                {errors.first_name && (
-                  <p className="text-sm text-red-500">{errors.first_name}</p>
+        {/* Profile Information Cards */}
+        <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 transition-all duration-500 ease-out ${
+          isEditing ? 'opacity-100 translate-y-0' : 'opacity-100 translate-y-0'
+        }`}>
+          {/* Name & Surname Card */}
+          <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/20">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
+                <Icon icon={User} size={16} className="text-primary" />
+              </div>
+              <h3 className="font-semibold text-foreground">Личные данные</h3>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs text-foreground/60 uppercase tracking-wider mb-1">Имя</p>
+                {isEditing ? (
+                  <div className="space-y-2 animate-in slide-in-from-top-2 duration-300 ease-out">
+                    <Input
+                      type="text"
+                      value={formData.first_name}
+                      onChange={(e) => handleFieldChange('first_name', e.target.value)}
+                      className={`h-9 transition-all duration-300 ease-out ${errors.first_name ? 'border-red-500' : ''}`}
+                      placeholder="Введите имя"
+                      maxLength={50}
+                    />
+                    {errors.first_name && (
+                      <p className="text-xs text-red-500 animate-in slide-in-from-top-1 duration-200 ease-out">{errors.first_name}</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm font-medium text-foreground transition-all duration-300 ease-out">
+                    {(() => {
+                      const displayName = user?.profile?.first_name || 'Не указано';
+                      return displayName;
+                    })()}
+                  </p>
                 )}
               </div>
-            ) : (
-              <p className="text-foreground py-2 px-3 bg-muted rounded-md">
-                {(() => {
-                  const displayName = user?.profile?.first_name || 'Не указано';
-                  console.log('ProfileForm: Displaying first_name:', displayName, 'from user:', user?.profile?.first_name);
-                  return displayName;
-                })()}
-              </p>
-            )}
+              <div>
+                <p className="text-xs text-foreground/60 uppercase tracking-wider mb-1">Фамилия</p>
+                {isEditing ? (
+                  <div className="space-y-2 animate-in slide-in-from-top-2 duration-300 ease-out delay-75">
+                    <Input
+                      type="text"
+                      value={formData.last_name}
+                      onChange={(e) => handleFieldChange('last_name', e.target.value)}
+                      className={`h-9 transition-all duration-300 ease-out ${errors.last_name ? 'border-red-500' : ''}`}
+                      placeholder="Введите фамилию"
+                      maxLength={50}
+                    />
+                    {errors.last_name && (
+                      <p className="text-xs text-red-500 animate-in slide-in-from-top-1 duration-200 ease-out">{errors.last_name}</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm font-medium text-foreground transition-all duration-300 ease-out">
+                    {user.profile?.last_name || 'Не указано'}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Last Name */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Фамилия
-            </label>
-            {isEditing ? (
-              <div className="space-y-2">
-                <div className="relative">
-                  <Icon icon={User} size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground/50" />
-                  <Input
-                    type="text"
-                    value={formData.last_name}
-                    onChange={(e) => handleFieldChange('last_name', e.target.value)}
-                    className={`pl-10 ${errors.last_name ? 'border-red-500' : ''}`}
-                    placeholder="Введите фамилию"
-                    maxLength={50}
-                  />
-                </div>
-                {errors.last_name && (
-                  <p className="text-sm text-red-500">{errors.last_name}</p>
+          {/* Contact & Birthday Card */}
+          <div className="bg-gradient-to-br from-emerald-500/5 to-emerald-500/10 rounded-xl p-4 border border-emerald-500/20">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                <Icon icon={Phone} size={16} className="text-emerald-600" />
+              </div>
+              <h3 className="font-semibold text-foreground">Контакты</h3>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs text-foreground/60 uppercase tracking-wider mb-1">Телефон</p>
+                {isEditing ? (
+                  <div className="space-y-2 animate-in slide-in-from-top-2 duration-300 ease-out delay-150">
+                    <Input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => handleFieldChange('phone', e.target.value)}
+                      className={`h-9 transition-all duration-300 ease-out ${errors.phone ? 'border-red-500' : ''}`}
+                      placeholder="+7 (999) 123-45-67"
+                      maxLength={18}
+                    />
+                    {errors.phone && (
+                      <p className="text-xs text-red-500 animate-in slide-in-from-top-1 duration-200 ease-out">{errors.phone}</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm font-medium text-foreground transition-all duration-300 ease-out">
+                    {user.profile?.phone || 'Не указано'}
+                  </p>
                 )}
               </div>
-            ) : (
-              <p className="text-foreground py-2 px-3 bg-muted rounded-md">
-                {user.profile?.last_name || 'Не указано'}
-              </p>
-            )}
-          </div>
-
-          {/* Phone */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Телефон
-            </label>
-            {isEditing ? (
-              <div className="space-y-2">
-                <div className="relative">
-                  <Icon icon={Phone} size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground/50" />
-                  <Input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => handleFieldChange('phone', e.target.value)}
-                    className={`pl-10 ${errors.phone ? 'border-red-500' : ''}`}
-                    placeholder="+7 (999) 123-45-67"
-                    maxLength={18}
-                  />
-                </div>
-                {errors.phone && (
-                  <p className="text-sm text-red-500">{errors.phone}</p>
+              <div>
+                <p className="text-xs text-foreground/60 uppercase tracking-wider mb-1">Дата рождения</p>
+                {isEditing ? (
+                  <div className="space-y-2 animate-in slide-in-from-top-2 duration-300 ease-out delay-225">
+                    <Input
+                      type="date"
+                      value={formData.date_of_birth}
+                      onChange={(e) => handleFieldChange('date_of_birth', e.target.value)}
+                      className={`h-9 transition-all duration-300 ease-out ${errors.date_of_birth ? 'border-red-500' : ''}`}
+                      max={new Date(Date.now() - 13 * 365.25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                      min={new Date(Date.now() - 120 * 365.25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                    />
+                    {errors.date_of_birth && (
+                      <p className="text-xs text-red-500 animate-in slide-in-from-top-1 duration-200 ease-out">{errors.date_of_birth}</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm font-medium text-foreground transition-all duration-300 ease-out">
+                    {user.profile?.date_of_birth
+                      ? new Date(user.profile?.date_of_birth).toLocaleDateString('ru-RU')
+                      : 'Не указано'
+                    }
+                  </p>
                 )}
               </div>
-            ) : (
-              <p className="text-foreground py-2 px-3 bg-muted rounded-md">
-                {user.profile?.phone || 'Не указано'}
-              </p>
-            )}
-          </div>
-
-          {/* Date of Birth */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Дата рождения
-            </label>
-            {isEditing ? (
-              <div className="space-y-2">
-                <div className="relative">
-                  <Icon icon={Calendar} size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground/50" />
-                  <Input
-                    type="date"
-                    value={formData.date_of_birth}
-                    onChange={(e) => handleFieldChange('date_of_birth', e.target.value)}
-                    className={`pl-10 ${errors.date_of_birth ? 'border-red-500' : ''}`}
-                    max={new Date(Date.now() - 13 * 365.25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                    min={new Date(Date.now() - 120 * 365.25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                  />
-                </div>
-                {errors.date_of_birth && (
-                  <p className="text-sm text-red-500">{errors.date_of_birth}</p>
-                )}
-              </div>
-            ) : (
-              <p className="text-foreground py-2 px-3 bg-muted rounded-md">
-                {user.profile?.date_of_birth
-                  ? new Date(user.profile?.date_of_birth).toLocaleDateString('ru-RU')
-                  : 'Не указано'
-                }
-              </p>
-            )}
+            </div>
           </div>
         </div>
 
         {/* Action Buttons */}
         {isEditing && (
-          <div className="flex items-center space-x-4 pt-6 border-t border-border">
+          <div className="flex items-center space-x-4 pt-6 border-t border-border animate-in slide-in-from-bottom-4 duration-500 ease-out">
             <Button
               type="submit"
               disabled={isLoading}
-              className="flex items-center space-x-2"
+              className="btn-with-icon"
             >
-              <Icon icon={Save} size={16} />
+              <Icon icon={Save} size={16} className="flex-shrink-0" />
               <span>{isLoading ? 'Сохранение...' : 'Сохранить'}</span>
             </Button>
             <Button
@@ -425,9 +423,9 @@ export const ProfileForm: React.FC = () => {
               variant="secondary"
               onClick={handleCancel}
               disabled={isLoading}
-              className="flex items-center space-x-2"
+              className="btn-with-icon"
             >
-              <Icon icon={X} size={16} />
+              <Icon icon={X} size={16} className="flex-shrink-0" />
               <span>Отмена</span>
             </Button>
           </div>

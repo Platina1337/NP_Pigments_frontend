@@ -5,14 +5,16 @@ import { CartItem, CartState, Perfume } from '@/types';
 import { api } from '@/lib/api';
 import { normalizeProductPayload } from '@/lib/product-normalizer';
 import { useAuth } from '@/context/AuthContext';
+import { getPriceInfo } from '@/lib/product-pricing';
 
 // Действия для reducer
 type CartAction =
-  | { type: 'ADD_ITEM'; payload: Perfume }
+  | { type: 'ADD_ITEM'; payload: Perfume; volumeOptionId?: number; weightOptionId?: number }
   | { type: 'REMOVE_ITEM'; payload: string }
   | { type: 'UPDATE_QUANTITY'; payload: { id: string; quantity: number } }
   | { type: 'CLEAR_CART' }
   | { type: 'LOAD_CART'; payload: CartItem[] }
+  | { type: 'SYNC_PRICES'; payload: CartItem[] } // <-- Новое действие
   | { type: 'SET_HYDRATED'; payload: boolean }; // Новое действие
 const CART_STORAGE_KEY = 'perfume-cart';
 // Удаляем CART_HYDRATED_KEY, так как будем использовать состояние внутри редьюсера
@@ -30,8 +32,16 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case 'ADD_ITEM': {
       const payloadType = (action.payload as any)?.product_type || 'perfume';
+      const volumeOptionId = action.volumeOptionId;
+      const weightOptionId = action.weightOptionId;
+
+      // Create unique key that includes variant to allow same product with different volumes
+      const variantKey = volumeOptionId ? `-vol${volumeOptionId}` : (weightOptionId ? `-wt${weightOptionId}` : '');
       const existingItem = state.items.find(
-        item => item.perfume.id === action.payload.id && item.productType === payloadType
+        item => item.perfume.id === action.payload.id &&
+          item.productType === payloadType &&
+          item.volumeOptionId === volumeOptionId &&
+          item.weightOptionId === weightOptionId
       );
 
       let newItems: CartItem[];
@@ -39,17 +49,19 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       if (existingItem) {
         // Увеличиваем количество существующего товара
         newItems = state.items.map(item =>
-          item.perfume.id === action.payload.id && item.productType === payloadType
+          item.id === existingItem.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       } else {
         // Добавляем новый товар
         const newItem: CartItem = {
-          id: `${action.payload.id}-${Date.now()}`, // Уникальный ID для корзины
+          id: `${action.payload.id}${variantKey}-${Date.now()}`, // Уникальный ID для корзины
           perfume: action.payload,
           quantity: 1,
           productType: payloadType,
+          volumeOptionId,
+          weightOptionId,
         };
         newItems = [...state.items, newItem];
       }
@@ -118,6 +130,21 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         isHydrated: action.payload,
       };
 
+    case 'SYNC_PRICES': {
+      // Это действие обновляет товары в корзине свежими данными с сервера
+      // и пересчитывает итоги.
+      const newItems = action.payload;
+      const total = calculateTotal(newItems);
+      const itemCount = calculateItemCount(newItems);
+
+      return {
+        ...state,
+        items: newItems,
+        total,
+        itemCount,
+      };
+    }
+
     default:
       return state;
   }
@@ -126,7 +153,8 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
 // Вспомогательные функции
 const calculateTotal = (items: CartItem[]): number => {
   return items.reduce((total, item) => {
-    return total + (parseFloat(item.perfume.price) * item.quantity);
+    const { currentPrice } = getPriceInfo(item.perfume as any);
+    return total + currentPrice * item.quantity;
   }, 0);
 };
 
@@ -203,7 +231,7 @@ const mergeCartCollections = (serverItems: CartItem[], localItems: CartItem[]): 
 // Контекст
 interface CartContextType {
   state: CartState;
-  addItem: (perfume: Perfume, productType?: 'perfume' | 'pigment') => void;
+  addItem: (perfume: Perfume, productType?: 'perfume' | 'pigment', volumeOptionId?: number, weightOptionId?: number) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
@@ -227,6 +255,87 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   useEffect(() => {
     latestItemsRef.current = state.items;
   }, [state.items]);
+
+  // Эффект для синхронизации цен при загрузке
+  useEffect(() => {
+    const verifyCartPrices = async () => {
+      // Проверяем только если корзина гидратирована и содержит товары
+      if (!state.isHydrated || state.items.length === 0) {
+        return;
+      }
+
+      console.log('Verifying cart prices against server...');
+
+      const perfumeIds = state.items
+        .filter(item => item.productType === 'perfume')
+        .map(item => item.perfume.id);
+
+      const pigmentIds = state.items
+        .filter(item => item.productType === 'pigment')
+        .map(item => item.perfume.id);
+
+      if (perfumeIds.length === 0 && pigmentIds.length === 0) {
+        return;
+      }
+
+      try {
+        const response = await api.products.getBatchDetails({
+          perfumes: perfumeIds,
+          pigments: pigmentIds,
+        });
+
+        if (!response || !response.data) {
+          console.error('Failed to get batch details from server', response?.error);
+          return;
+        }
+
+        const serverPerfumes = response.data.perfumes || [];
+        const serverPigments = response.data.pigments || [];
+
+        const priceMap = new Map<string, any>();
+        serverPerfumes.forEach((p: any) => priceMap.set(`perfume-${p.id}`, p));
+        serverPigments.forEach((p: any) => priceMap.set(`pigment-${p.id}`, p));
+
+        let hasPriceChanged = false;
+
+        const updatedItems = state.items.map(item => {
+          const key = `${item.productType}-${item.perfume.id}`;
+          const serverProduct = priceMap.get(key);
+
+          if (serverProduct) {
+            // Сравниваем final_price, так как он учитывает скидку
+            if (item.perfume.final_price !== serverProduct.final_price) {
+              console.log(`Price for ${item.perfume.name} changed. Old: ${item.perfume.final_price}, New: ${serverProduct.final_price}`);
+              hasPriceChanged = true;
+              return {
+                ...item,
+                perfume: normalizeProductPayload(serverProduct),
+              };
+            }
+          } else {
+            // Если товара больше нет на сервере, он будет удален
+            // (или можно оставить, но с пометкой "недоступен")
+            // Пока просто оставляем как есть, но можно добавить логику удаления
+            console.warn(`Product ${key} not found on server during price sync.`);
+          }
+          return item;
+        });
+
+        if (hasPriceChanged) {
+          console.log('Cart prices have changed, dispatching SYNC_PRICES.');
+          dispatch({ type: 'SYNC_PRICES', payload: updatedItems });
+        } else {
+          console.log('All cart prices are up-to-date.');
+        }
+
+      } catch (error) {
+        console.error('Error verifying cart prices:', error);
+      }
+    };
+
+    verifyCartPrices();
+  }, [state.isHydrated]); // Запускаем проверку при гидратации корзины
+
 
   // Загрузка корзины из localStorage при монтировании (теперь только для гостей, если она еще не гидратирована)
   useEffect(() => {
@@ -400,10 +509,10 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     syncCart();
   }, [isAuthenticated, state.items, state.isHydrated]); // Добавляем state.isHydrated в зависимости
 
-  const addItem = (perfume: Perfume, productType: 'perfume' | 'pigment' = 'perfume') => {
-    console.log('Adding item to cart:', perfume.id, productType);
+  const addItem = (perfume: Perfume, productType: 'perfume' | 'pigment' = 'perfume', volumeOptionId?: number, weightOptionId?: number) => {
+    console.log('Adding item to cart:', perfume.id, productType, 'volumeOptionId:', volumeOptionId);
     const payload = { ...perfume, product_type: productType } as Perfume;
-    dispatch({ type: 'ADD_ITEM', payload });
+    dispatch({ type: 'ADD_ITEM', payload, volumeOptionId, weightOptionId });
   };
 
   const removeItem = async (id: string) => {

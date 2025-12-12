@@ -194,9 +194,9 @@ export const SettingsForm: React.FC = () => {
         <Button
           onClick={handleSubmit}
           disabled={isLoading}
-          className="flex items-center space-x-2"
+          className="btn-with-icon"
         >
-          <Icon icon={Save} size={16} />
+          <Icon icon={Save} size={16} className="flex-shrink-0" />
           <span>{isLoading ? 'Сохранение...' : 'Сохранить настройки'}</span>
         </Button>
       </div>

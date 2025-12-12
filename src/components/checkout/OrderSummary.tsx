@@ -7,6 +7,8 @@ interface OrderSummaryProps {
   subtotal: number
   deliveryCost: number
   deliveryMethod?: string
+  loyaltyDiscount?: number
+  loyaltyPointsUsed?: number
 }
 
 export const OrderSummary: React.FC<OrderSummaryProps> = ({
@@ -14,8 +16,10 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
   subtotal,
   deliveryCost,
   deliveryMethod,
+  loyaltyDiscount = 0,
+  loyaltyPointsUsed = 0,
 }) => {
-  const total = subtotal + deliveryCost
+  const total = Math.max(subtotal - loyaltyDiscount + deliveryCost, 0)
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 sticky top-4">
@@ -54,6 +58,13 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
             {deliveryCost > 0 ? formatPrice(deliveryCost) : 'Бесплатно'}
           </span>
         </div>
+
+        {loyaltyDiscount > 0 && (
+          <div className="flex justify-between text-sm text-emerald-700">
+            <span>Скидка баллами {loyaltyPointsUsed ? `(${loyaltyPointsUsed} баллов)` : ''}</span>
+            <span>-{formatPrice(loyaltyDiscount)}</span>
+          </div>
+        )}
       </div>
 
       {/* Total */}

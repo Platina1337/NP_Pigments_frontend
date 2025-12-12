@@ -1,13 +1,11 @@
 import type { Perfume as CartPerfume } from '@/types';
 import type { Perfume, Pigment } from '@/types/api';
+import { getPriceInfo } from '@/lib/product-pricing';
 
 type Product = Perfume | Pigment;
 
 export const normalizeProductForCart = (product: Product): CartPerfume => {
-  const basePrice =
-    typeof product.price === 'number'
-      ? product.price
-      : parseFloat(product.price as unknown as string);
+  const { originalPrice, currentPrice } = getPriceInfo(product as any);
 
   const base: Omit<
     CartPerfume,
@@ -20,7 +18,8 @@ export const normalizeProductForCart = (product: Product): CartPerfume => {
     brand_id: product.brand.id,
     category_id: product.category.id,
     description: product.description,
-    price: basePrice.toString(),
+    price: originalPrice.toString(),
+    final_price: currentPrice,
     image: product.image ?? null,
     in_stock: product.in_stock,
     stock_quantity: product.stock_quantity,

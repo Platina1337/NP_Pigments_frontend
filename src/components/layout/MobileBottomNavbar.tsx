@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import {
   Home,
   Package,
-  Search,
   ShoppingCart,
   User,
 } from 'lucide-react';
@@ -38,12 +37,6 @@ export const MobileBottomNavbar: React.FC = () => {
       label: 'Каталог',
       icon: Package,
       active: pathname === '/products' || pathname.startsWith('/products/')
-    },
-    {
-      href: '/search',
-      label: 'Поиск',
-      icon: Search,
-      active: pathname === '/search'
     },
     {
       href: '/cart',

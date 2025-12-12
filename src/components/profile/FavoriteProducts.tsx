@@ -126,7 +126,7 @@ export const FavoriteProducts: React.FC = () => {
                 size="sm"
                 onClick={() => handleRemove(item)}
                 disabled={pendingId === item.id}
-                className="flex items-center gap-1"
+                className="btn-with-icon"
               >
                 <Trash2 className="h-4 w-4" />
                 Удалить
@@ -135,7 +135,7 @@ export const FavoriteProducts: React.FC = () => {
                 size="sm"
                 disabled={!item.productData}
                 onClick={() => handleAddToCart(item)}
-                className="flex items-center gap-2"
+                className="btn-with-icon"
               >
                 <ShoppingBag className="h-4 w-4" />
                 В корзину

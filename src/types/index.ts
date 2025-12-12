@@ -24,7 +24,14 @@ export interface Perfume {
   category_id?: number;
   description: string;
   gender: 'M' | 'F' | 'U';
-  price: string; // Django DecimalField возвращается как string
+  price: string; // исходная цена (string от DRF)
+  final_price?: number | string; // цена с учетом скидки
+  discount_percentage?: number;
+  discount_price?: string | null;
+  discount_start_date?: string | null;
+  discount_end_date?: string | null;
+  is_on_sale?: boolean;
+  discount_percent_display?: number;
   volume_ml: number;
   concentration: string;
   top_notes: string;
@@ -44,6 +51,13 @@ export interface PerfumeListItem {
   brand_name: string;
   category_name: string;
   price: string;
+  final_price?: number | string;
+  discount_percentage?: number;
+  discount_price?: string | null;
+  discount_start_date?: string | null;
+  discount_end_date?: string | null;
+  is_on_sale?: boolean;
+  discount_percent_display?: number;
   volume_ml: number;
   gender: 'M' | 'F' | 'U';
   in_stock: boolean;
@@ -57,6 +71,13 @@ export interface PigmentListItem {
   brand_name: string;
   category_name: string;
   price: string;
+  final_price?: number | string;
+  discount_percentage?: number;
+  discount_price?: string | null;
+  discount_start_date?: string | null;
+  discount_end_date?: string | null;
+  is_on_sale?: boolean;
+  discount_percent_display?: number;
   weight_gr: number;
   color_type: 'powder' | 'liquid' | 'paste';
   application_type: 'cosmetics' | 'art' | 'industrial' | 'food';
@@ -72,6 +93,13 @@ export interface ProductListItem {
   brand_name: string;
   category_name: string;
   price: number;
+  final_price?: number | string;
+  discount_percentage?: number;
+  discount_price?: string | null;
+  discount_start_date?: string | null;
+  discount_end_date?: string | null;
+  is_on_sale?: boolean;
+  discount_percent_display?: number;
   in_stock: boolean;
   image?: string;
   product_type: 'perfume' | 'pigment';
@@ -90,6 +118,8 @@ export interface CartItem {
   perfume: Perfume;
   quantity: number;
   productType: 'perfume' | 'pigment';
+  volumeOptionId?: number;  // Selected volume option for perfumes
+  weightOptionId?: number;  // Selected weight option for pigments
 }
 
 export interface CartState {
@@ -144,4 +174,24 @@ export interface CheckoutForm extends ContactForm {
   city: string;
   postal_code: string;
   payment_method: 'card' | 'cash';
+}
+
+// Лояльность
+export interface LoyaltyAccount {
+  balance: number;
+  lifetime_earned: number;
+  lifetime_redeemed: number;
+  tier: 'bronze' | 'silver' | 'gold';
+  max_redeem_per_order: number;
+  updated_at: string;
+}
+
+export interface LoyaltyTransaction {
+  id: number;
+  transaction_type: 'earn' | 'redeem' | 'refund' | 'adjust';
+  points: number;
+  description: string;
+  balance_after: number;
+  order_id?: number;
+  created_at: string;
 }

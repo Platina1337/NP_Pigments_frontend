@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import { Perfume, Pigment } from '@/types/api'
+import { Perfume, Pigment, Promotion } from '@/types/api'
 
 // Утилита для сохранения breadcrumb пути
 export function saveBreadcrumbPath(steps: Array<{ label: string; href: string }>) {
@@ -26,22 +26,21 @@ export type FeaturedItem = FeaturedProduct | FeaturedPigment
 // SWR fetcher function
 const fetcher = async (url: string) => {
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
-  // URL should not include /api/ prefix since API_BASE_URL already has it
   const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`
-  console.log('SWR Fetcher: Making request to:', fullUrl)
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+
   const response = await fetch(fullUrl, {
     headers: {
-      'Accept': 'application/json',
+      Accept: 'application/json',
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   })
+
   if (!response.ok) {
-    console.error('SWR Fetcher: Request failed:', response.status, response.statusText)
-    throw new Error(`An error occurred while fetching the data: ${response.status} ${response.statusText}`)
+    throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`)
   }
-  const data = await response.json()
-  console.log('SWR Fetcher: Received data:', data)
-  return data
+  return response.json()
 }
 
 // Custom hooks for API data with SWR caching
@@ -126,6 +125,44 @@ export function useFeaturedProducts() {
     featuredProducts: featuredItems,
     isLoading,
     isError,
+  }
+}
+
+export function usePromotions(params?: Record<string, string>) {
+  const queryString = params ? new URLSearchParams(params).toString() : ''
+  const url = `/promotions/${queryString ? `?${queryString}` : ''}`
+
+  const { data, error, isLoading } = useSWR(url, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 10000,
+  })
+
+  const list = Array.isArray((data as any)?.results)
+    ? (data as any).results
+    : Array.isArray(data)
+      ? (data as any)
+      : []
+
+  return {
+    promotions: list as Promotion[],
+    isLoading,
+    isError: error,
+  }
+}
+
+export function useTrending() {
+  const url = `/trending/`
+  const { data, error, isLoading } = useSWR(url, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 10000,
+  })
+
+  const list = Array.isArray(data) ? data : []
+
+  return {
+    trending: list,
+    isLoading,
+    isError: error,
   }
 }
 

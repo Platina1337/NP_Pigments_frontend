@@ -158,6 +158,31 @@ export const Footer: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Реквизиты для платежей (ЮKassa требует ИНН на сайте) */}
+          <div className="mt-6 bg-card/50 border border-border/60 rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-[#3B7171] to-[#6B9999] flex items-center justify-center text-white font-semibold">
+                ИП
+              </div>
+              <div>
+                <p className="text-sm text-foreground/60">Реквизиты продавца</p>
+                <p className="text-base font-semibold text-foreground">ИП Молодцова Ирина Геннадьевна</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-foreground/70">
+              <div>
+                <p className="font-semibold text-foreground">ИНН 690602401512</p>
+                <p>ОГРНИП 319695200059942</p>
+                <p>Тел.: +7 900 019 40 51</p>
+              </div>
+              <div>
+                <p>171980, Тверская обл., г. Бежецк, ул. Чехова, д. 4А, кв. 36</p>
+                <p>ПАО «БАНК УРАЛСИБ», г. Москва</p>
+                <p>БИК 042809679, р/с 4080281016730000213231</p>
+              </div>
+            </div>
+          </div>
         </div>
 
 

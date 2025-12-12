@@ -16,7 +16,10 @@ export const CartItemComponent: React.FC<CartItemProps> = ({
   onRemove,
 }) => {
   const { perfume, quantity } = item;
-  const itemTotal = parseFloat(perfume.price) * quantity;
+  const originalPrice = parseFloat(perfume.price);
+  const finalPrice = perfume.final_price;
+  const hasDiscount = finalPrice < originalPrice;
+  const itemTotal = finalPrice * quantity;
 
   const handleQuantityChange = (newQuantity: number) => {
     if (newQuantity <= 0) {
@@ -27,15 +30,16 @@ export const CartItemComponent: React.FC<CartItemProps> = ({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 p-3 sm:p-4 bg-white rounded-lg shadow-sm border">
+    <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-white/20 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
       {/* Верхняя часть для мобильных - изображение и основная информация */}
-      <div className="flex items-center space-x-3 sm:space-x-4 flex-1">
+      <div className="flex items-center space-x-4 flex-1 mb-4">
         {/* Изображение товара */}
-        <div className="relative w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0">
+        <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-emerald-500/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
           <img
             src={getImageUrl(perfume.image || '')}
             alt={perfume.name}
-            className="w-full h-full object-cover rounded-md"
+            className="relative w-full h-full object-cover rounded-xl shadow-md"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.src = '/placeholder-perfume.jpg';
@@ -45,32 +49,48 @@ export const CartItemComponent: React.FC<CartItemProps> = ({
 
         {/* Информация о товаре */}
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-foreground truncate">
-            {perfume.brand.name} - {perfume.name}
-          </h3>
-          <p className="text-xs sm:text-sm text-foreground/60">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors">
+              {perfume.brand.name} - {perfume.name}
+            </h3>
+            {hasDiscount && (
+              <span className="text-xs font-semibold text-red-600 bg-red-100/80 px-2 py-0.5 rounded-md">
+                Скидка
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-foreground/60 mb-2">
             {perfume.category.name} • {perfume.volume_ml} мл
           </p>
-          <p className="text-xs sm:text-sm font-medium text-primary">
-            {formatPrice(parseFloat(perfume.price))} за шт.
-          </p>
+          <div className="flex items-baseline gap-2">
+            <p className="text-sm font-semibold text-primary">
+              {formatPrice(finalPrice)} за шт.
+            </p>
+            {hasDiscount && (
+              <p className="text-xs text-foreground/50 line-through">
+                {formatPrice(originalPrice)}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Нижняя часть для мобильных - управление и сумма */}
-      <div className="flex items-center justify-between sm:justify-end sm:space-x-4">
+      <div className="flex items-center justify-between">
         {/* Управление количеством */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3 bg-foreground/5 rounded-xl p-2">
           <Button
             variant="secondary"
             size="sm"
             onClick={() => handleQuantityChange(quantity - 1)}
-            className="p-1 h-7 w-7 sm:h-8 sm:w-8"
+            className="h-8 w-8 rounded-lg hover:bg-primary hover:text-primary-foreground transition-all duration-200 !p-0"
           >
-            <Minus className="w-3 h-3" />
+            <div className="flex items-center justify-center w-full h-full">
+              <Minus className="w-4 h-4" />
+            </div>
           </Button>
 
-          <span className="w-6 sm:w-8 text-center text-sm font-medium">
+          <span className="w-10 text-center text-base font-semibold text-foreground">
             {quantity}
           </span>
 
@@ -78,25 +98,32 @@ export const CartItemComponent: React.FC<CartItemProps> = ({
             variant="secondary"
             size="sm"
             onClick={() => handleQuantityChange(quantity + 1)}
-            className="p-1 h-7 w-7 sm:h-8 sm:w-8"
+            className="h-8 w-8 rounded-lg hover:bg-primary hover:text-primary-foreground transition-all duration-200 !p-0"
           >
-            <Plus className="w-3 h-3" />
+            <div className="flex items-center justify-center w-full h-full">
+              <Plus className="w-4 h-4" />
+            </div>
           </Button>
         </div>
 
         {/* Сумма и удаление */}
-        <div className="flex items-center space-x-2 sm:space-x-4">
-          <span className="text-sm font-medium text-foreground w-16 sm:w-20 text-right">
-            {formatPrice(itemTotal)}
-          </span>
+        <div className="flex items-center space-x-4">
+          <div className="text-right">
+            <p className="text-xs text-foreground/60">Сумма</p>
+            <span className="text-lg font-bold text-foreground">
+              {formatPrice(itemTotal)}
+            </span>
+          </div>
 
           <Button
             variant="secondary"
             size="sm"
             onClick={() => onRemove(item.id)}
-            className="p-1 h-7 w-7 sm:h-8 sm:w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+            className="h-10 w-10 rounded-xl text-red-500 hover:text-white hover:bg-red-500 transition-all duration-200 shadow-sm hover:shadow-md !p-0"
           >
-            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+            <div className="flex items-center justify-center w-full h-full">
+              <Trash2 className="w-5 h-5" />
+            </div>
           </Button>
         </div>
       </div>

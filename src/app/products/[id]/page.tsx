@@ -1,6 +1,9 @@
 import React from 'react';
 import { Suspense } from 'react';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import {
   perfumesApi,
   pigmentsApi,
@@ -15,6 +18,7 @@ import { ProductImageGallery } from '@/components/products/ProductImageGallery';
 import { ProductInfo } from '@/components/products/ProductInfo';
 import { ProductReviews } from '@/components/products/ProductReviews';
 import { RelatedProducts } from '@/components/products/RelatedProducts';
+import { ProductAdditionalInfo } from '@/components/products/ProductAdditionalInfo';
 import { DynamicBreadcrumb } from '@/components/ui/DynamicBreadcrumb';
 import Loading from '@/components/Loading';
 
@@ -40,44 +44,65 @@ function getProductDisplayName(product: Product): string {
 }
 
 // Это серверный компонент для получения данных
-async function getProduct(id: string): Promise<Product | null> {
+async function getProduct(idOrSlug: string): Promise<Product | null> {
   try {
-    console.log('Getting product with id:', id);
-    const parsedId = parseInt(id);
-    console.log('Parsed id:', parsedId);
+    const parsedId = parseInt(idOrSlug, 10);
+    const maybeSlug = Number.isNaN(parsedId);
 
-    if (isNaN(parsedId)) {
-      console.error('Invalid ID:', id);
-      return null;
+    if (!maybeSlug) {
+      const perfumeResponse = await perfumesApi.getById(parsedId);
+      if (perfumeResponse.data && !perfumeResponse.error) {
+        return perfumeResponse.data as Perfume;
+      }
+      const pigmentResponse = await pigmentsApi.getById(parsedId);
+      if (pigmentResponse.data && !pigmentResponse.error) {
+        return pigmentResponse.data as Pigment;
+      }
+    } else {
+      const perfumeResponse = await perfumesApi.getBySlug(idOrSlug);
+      if (perfumeResponse.data && !perfumeResponse.error) {
+        return perfumeResponse.data as Perfume;
+      }
+      const pigmentResponse = await pigmentsApi.getBySlug(idOrSlug);
+      if (pigmentResponse.data && !pigmentResponse.error) {
+        return pigmentResponse.data as Pigment;
+      }
     }
 
-    // Сначала пытаемся найти среди парфюмов
-    console.log('Trying to find perfume...');
-    const perfumeResponse = await perfumesApi.getById(parsedId);
-    console.log('Perfume API response:', perfumeResponse);
-
-    if (perfumeResponse.data && !perfumeResponse.error) {
-      console.log('Found perfume:', perfumeResponse.data);
-      return perfumeResponse.data as Perfume;
-    }
-
-    // Если парфюм не найден, ищем среди пигментов
-    console.log('Perfume not found, trying pigments...');
-    const pigmentResponse = await pigmentsApi.getById(parsedId);
-    console.log('Pigment API response:', pigmentResponse);
-
-    if (pigmentResponse.data && !pigmentResponse.error) {
-      console.log('Found pigment:', pigmentResponse.data);
-      return pigmentResponse.data as Pigment;
-    }
-
-    // Если ничего не найдено
-    console.error('Product not found in both perfumes and pigments');
     return null;
   } catch (error) {
-    console.error('Error fetching product:', error);
     return null;
   }
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const product = await getProduct(id);
+  if (!product) {
+    return {
+      title: 'Товар не найден',
+      description: 'Товар не найден',
+    };
+  }
+
+  const productType = getProductType(product);
+  const title = `${product.brand.name} — ${product.name}`;
+  const description = product.description?.slice(0, 160) || `Товар ${title}`;
+  const image = product.image || (product.images && product.images[0]?.image);
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website', // Next metadata OG type union: use website for совместимости
+      images: image ? [{ url: image, alt: title }] : [],
+    },
+    alternates: {
+      canonical: `/products/${product.slug || id}`,
+    },
+  };
 }
 
 interface ProductPageProps {
@@ -113,28 +138,40 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   return (
     <div className="min-h-screen bg-[var(--brand-background)]">
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="mb-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org/',
+            '@type': 'Product',
+            name: `${product.brand.name} ${product.name}`,
+            image: product.image || (product.images && product.images[0]?.image) || undefined,
+            description: product.description,
+            sku: (product as any).sku || undefined,
+            brand: {
+              '@type': 'Brand',
+              name: product.brand.name,
+            },
+            offers: {
+              '@type': 'Offer',
+              priceCurrency: 'RUB',
+              price: product.final_price || product.price,
+              availability: product.in_stock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+            },
+          }),
+        }}
+      />
+      <div className="mx-auto max-w-7xl px-0 py-8 sm:px-5 sm:py-10 lg:px-8">
+        <div className="mb-8 sm:mb-10">
           <DynamicBreadcrumb product={product} />
         </div>
 
         <ProductExperience product={product} productType={productType} />
 
-        <div className="mt-12 space-y-10">
-          <ProductNarrative product={product} productType={productType} />
-          <ProductSignatureSpecs product={product} productType={productType} />
-        </div>
+        <ProductAdditionalInfo product={product} productType={productType} />
 
-        <section id="reviews" className="mt-14">
-          <div className="rounded-[32px] border border-slate-200 dark:border-white/60 bg-white/90 shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/70">
-            <Suspense fallback={<Loading />}>
-              <ProductReviews productId={product.id} />
-            </Suspense>
-          </div>
-        </section>
-
-        <section className="mt-14">
-          <div className="rounded-[32px] border border-slate-200 dark:border-white/60 bg-white/90 p-2 shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/70">
+        <section className="mt-10 sm:mt-14">
+          <div className="rounded-[24px] sm:rounded-[32px] border-0 bg-transparent p-0 shadow-none sm:border sm:border-slate-200 sm:bg-white/85 sm:p-8 sm:shadow-[0_20px_60px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-transparent sm:dark:bg-slate-900/70">
             <Suspense fallback={<Loading />}>
               <RelatedProducts
                 categoryId={product.category.id}
@@ -145,251 +182,15 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </Suspense>
           </div>
         </section>
+
+        <section id="reviews" className="mt-10 sm:mt-14">
+          <Suspense fallback={<Loading />}>
+            <ProductReviews productId={product.id} />
+          </Suspense>
+        </section>
       </div>
     </div>
   );
-}
-
-function ProductNarrative({
-  product,
-  productType,
-}: {
-  product: Product;
-  productType: 'perfume' | 'pigment';
-}) {
-  const storyParagraphs =
-    product.description?.split(/\n+/).filter(Boolean) ?? [];
-  const heroText =
-    storyParagraphs[0] ||
-    'Коллекция NP Academy создается вручную небольшими партиями, чтобы каждая нота звучала индивидуально.';
-  const supportingText =
-    storyParagraphs[1] ||
-    'Мы уделяем внимание каждой детали — от композиции до упаковки — чтобы вы чувствовали заботу уже с первого прикосновения.';
-
-  const insightCards = [
-    { label: 'Категория', value: product.category.name },
-    {
-      label: 'Происхождение',
-      value: product.brand.country || 'Европа',
-    },
-    {
-      label: 'Статус',
-      value: product.in_stock ? 'В наличии' : 'Доступен под заказ',
-    },
-  ];
-
-  const services = [
-    {
-      title: 'Консьерж сервис',
-      text: 'Персональный подбор аромата или оттенка по вашим предпочтениям.',
-    },
-    {
-      title: 'Поддержка 24/7',
-      text: 'Всегда на связи в мессенджерах и соцсетях — отвечаем в течение 10 минут.',
-    },
-    {
-      title: 'Подарочное оформление',
-      text: 'По запросу упакуем заказ в премиальную коробку и добавим персональную открытку.',
-    },
-  ];
-
-  return (
-    <section className="rounded-[32px] border border-slate-200 dark:border-white/60 bg-white/85 p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/70">
-      <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="space-y-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">
-            История
-          </p>
-          <h2 className="text-3xl font-semibold text-slate-900 dark:text-white">
-            {productType === 'perfume'
-              ? 'Ритуал раскрытия аромата'
-              : 'Философия цвета и текстуры'}
-          </h2>
-          <p className="text-base leading-relaxed text-slate-600 dark:text-slate-300">
-            {heroText}
-          </p>
-          <p className="text-base leading-relaxed text-slate-600 dark:text-slate-300">
-            {supportingText}
-          </p>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            {insightCards.map(({ label, value }) => (
-              <div
-                key={label}
-                className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5"
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-                  {label}
-                </p>
-                <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
-                  {value}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-6 rounded-2xl border border-slate-200 dark:border-white/10 bg-gradient-to-br from-emerald-50/80 to-white p-6 dark:border-white/10 dark:from-emerald-400/10 dark:to-white/5">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-600 dark:text-emerald-200">
-            Сервис NP
-          </p>
-          <div className="space-y-4">
-            {services.map(({ title, text }) => (
-              <div key={title}>
-                <p className="text-base font-semibold text-slate-900 dark:text-white">
-                  {title}
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  {text}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ProductSignatureSpecs({
-  product,
-  productType,
-}: {
-  product: Product;
-  productType: 'perfume' | 'pigment';
-}) {
-  const specs = isPerfume(product)
-    ? [
-        { label: 'Гендер', value: formatGender(product.gender) },
-        { label: 'Объем', value: formatVolume(product.volume_ml) },
-        { label: 'Концентрация', value: product.concentration },
-        {
-          label: 'Ноты',
-          value: [
-            product.top_notes,
-            product.heart_notes,
-            product.base_notes,
-          ]
-            .filter(Boolean)
-            .join(' · ') || 'Авторская композиция',
-        },
-      ]
-    : [
-        {
-          label: 'Текстура',
-          value: formatPigmentTexture(product as Pigment),
-        },
-        {
-          label: 'Назначение',
-          value: formatPigmentApplication(product as Pigment),
-        },
-        {
-          label: 'Вес',
-          value: formatWeight((product as Pigment).weight_gr),
-        },
-        {
-          label: 'Категория',
-          value: product.category.name,
-        },
-      ];
-
-  const logistics = [
-    {
-      label: 'Доставка по России',
-      value: '1‑3 дня. Передаем трек сразу после отправки.',
-    },
-    {
-      label: 'Оплата',
-      value: 'Банковские карты, рассрочка, счет для юрлиц.',
-    },
-    {
-      label: 'Гарантии',
-      value: 'Только оригинальная продукция. Возврат/обмен 30 дней.',
-    },
-    {
-      label: 'Средний чек заказа',
-      value: formatPrice(
-        typeof product.price === 'number'
-          ? product.price
-          : parseFloat(product.price as unknown as string),
-      ),
-    },
-  ];
-
-  return (
-    <section className="rounded-[32px] border border-slate-200 dark:border-white/60 bg-white/85 p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900/70">
-      <div className="grid gap-8 lg:grid-cols-2">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">
-            Технический профиль
-          </p>
-          <h3 className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">
-            {productType === 'perfume'
-              ? 'Что важно знать про аромат'
-              : 'Что важно знать о пигменте'}
-          </h3>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            {specs.map(({ label, value }) => (
-              <div
-                key={label}
-                className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5"
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-                  {label}
-                </p>
-                <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
-                  {value}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">
-            С заботой о клиенте
-          </p>
-          <h3 className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">
-            Организуем всё за вас
-          </h3>
-          <div className="mt-6 space-y-4">
-            {logistics.map(({ label, value }) => (
-              <div
-                key={label}
-                className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5"
-              >
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                  {label}
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  {value}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function formatPigmentTexture(product: Pigment): string {
-  const map: Record<Pigment['color_type'], string> = {
-    powder: 'Порошок',
-    liquid: 'Жидкий',
-    paste: 'Паста',
-  };
-  return map[product.color_type] ?? product.color_type;
-}
-
-function formatPigmentApplication(product: Pigment): string {
-  const map: Record<Pigment['application_type'], string> = {
-    cosmetics: 'Косметика',
-    art: 'Художественные проекты',
-    industrial: 'Индустриальные задачи',
-    food: 'Пищевые продукты',
-  };
-  return map[product.application_type] ?? product.application_type;
 }
 
 /**

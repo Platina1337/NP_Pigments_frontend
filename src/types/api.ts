@@ -1,10 +1,45 @@
+export interface VolumeOption {
+  id: number
+  volume_ml: number
+  price: number
+  final_price: number
+  discount_percentage?: number
+  discount_price?: number | null
+  stock_quantity: number
+  in_stock: boolean
+  is_default: boolean
+  is_on_sale?: boolean
+}
+
+export interface WeightOption {
+  id: number
+  weight_gr: number
+  price: number
+  final_price: number
+  discount_percentage?: number
+  discount_price?: number | null
+  stock_quantity: number
+  in_stock: boolean
+  is_default: boolean
+  is_on_sale?: boolean
+}
+
 export interface Perfume {
   id: number
+  slug?: string
+  sku?: string | null
   name: string
   brand: Brand
   category: Category
   description: string
   price: number
+  final_price?: number
+  discount_percentage?: number
+  discount_price?: number | null
+  discount_start_date?: string | null
+  discount_end_date?: string | null
+  is_on_sale?: boolean
+  discount_percent_display?: number
   volume_ml: number
   concentration: string
   gender: 'M' | 'F' | 'U'
@@ -18,10 +53,17 @@ export interface Perfume {
   stock_quantity: number
   created_at: string
   updated_at: string
+  // New multi-volume fields
+  volume_options?: VolumeOption[]
+  min_price?: number
+  max_price?: number
+  has_multiple_volumes?: boolean
 }
 
 export interface Pigment {
   id: number
+  slug?: string
+  sku?: string | null
   name: string
   brand: Brand
   category: Category
@@ -30,6 +72,13 @@ export interface Pigment {
   color_type: 'powder' | 'liquid' | 'paste'
   application_type: 'cosmetics' | 'art' | 'industrial' | 'food'
   price: number
+  final_price?: number
+  discount_percentage?: number
+  discount_price?: number | null
+  discount_start_date?: string | null
+  discount_end_date?: string | null
+  is_on_sale?: boolean
+  discount_percent_display?: number
   weight_gr: number
   image?: string
   images: ProductImage[]
@@ -38,6 +87,11 @@ export interface Pigment {
   stock_quantity: number
   created_at: string
   updated_at: string
+  // New multi-weight fields
+  weight_options?: WeightOption[]
+  min_price?: number
+  max_price?: number
+  has_multiple_weights?: boolean
 }
 
 export interface Brand {
@@ -75,6 +129,32 @@ export interface PaginationParams {
   page_size?: number
   search?: string
   ordering?: string
+}
+
+export type PromotionSlot = 'homepage_deals_1' | 'homepage_deals_2' | 'homepage_deals_3'
+export type PromotionType = 'brand' | 'category' | 'manual' | 'all'
+
+export interface Promotion {
+  id: number
+  title: string
+  promo_type: PromotionType
+  slot: PromotionSlot
+  priority: number
+  active: boolean
+  start_at?: string | null
+  end_at?: string | null
+  discount_percentage?: number
+  discount_price?: number | null
+  brand?: Brand | null
+  category?: Category | null
+  perfumes?: Perfume[]
+  pigments?: Pigment[]
+}
+
+export interface TrendingItem {
+  id: number
+  product_type: 'perfume' | 'pigment'
+  product: Perfume | Pigment
 }
 
 export interface PerfumeFilters extends PaginationParams {

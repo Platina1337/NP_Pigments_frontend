@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { Buffer } from 'buffer';
 import { User, AuthTokens, LoginResponse, RegisterData } from '@/types/api';
 import { api } from '@/lib/api';
 
@@ -15,11 +16,14 @@ interface AuthContextType {
   updateSettings: (data: Partial<User['settings']>) => Promise<void>;
   refreshUser: () => Promise<void>;
   // Email OTP
-  sendOTP: (email: string, purpose: 'login' | 'register') => Promise<{ otp_code?: string }>;
-  verifyOTP: (email: string, otpCode: string, purpose: 'login' | 'register') => Promise<void>;
+  sendOTP: (email: string, purpose: 'login' | 'register', registerData?: RegisterData) => Promise<{ otp_code?: string }>;
+  verifyOTP: (email: string, otpCode: string, purpose: 'login' | 'register', registerData?: any) => Promise<void>;
   // Google OAuth
   googleLogin: (email: string, name?: string, googleToken?: string) => Promise<void>;
   googleRegister: (email: string, name?: string, googleToken?: string) => Promise<void>;
+  // Direct state setters for magic link
+  setUser: (user: User | null) => void;
+  setTokens: (access: string, refresh: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,6 +44,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const decodeJwtExp = (token: string | null): number | null => {
+    if (!token) return null;
+    try {
+      const payload = token.split('.')[1];
+      const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const decoded =
+        typeof window === 'undefined'
+          ? Buffer.from(normalized, 'base64').toString('binary')
+          : atob(normalized);
+      const data = JSON.parse(decoded) as { exp?: number };
+      return typeof data.exp === 'number' ? data.exp : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const isExpired = (token: string | null, skewSeconds = 30) => {
+    const exp = decodeJwtExp(token);
+    if (!exp) return false;
+    const now = Date.now() / 1000;
+    return exp - skewSeconds <= now;
+  };
+
   // Check for existing tokens on mount
   useEffect(() => {
     const initializeAuth = async () => {
@@ -52,22 +79,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
-      // Check if tokens are likely expired (simple check - if stored more than 1 hour ago)
-      const tokenTimestamp = localStorage.getItem('token_timestamp');
-      if (tokenTimestamp) {
-        const tokenAge = Date.now() - parseInt(tokenTimestamp);
-        const oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
-        if (tokenAge > oneHour) {
-          // Tokens are old, clear them
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('token_timestamp');
+      try {
+        if (isExpired(refreshToken)) {
+          logout();
           setIsLoading(false);
           return;
         }
-      }
 
-      try {
+        if (isExpired(accessToken)) {
+          const refreshResponse = await api.auth.refresh({ refresh: refreshToken });
+          if (refreshResponse.data) {
+            const { access, refresh } = refreshResponse.data as AuthTokens;
+            localStorage.setItem('access_token', access);
+            localStorage.setItem('refresh_token', refresh || refreshToken);
+            localStorage.setItem('token_timestamp', Date.now().toString());
+          } else {
+            logout();
+            setIsLoading(false);
+            return;
+          }
+        }
+
         // Try to get user profile with current token
         const response = await api.auth.profile();
         if (response.data) {
@@ -112,6 +144,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await api.auth.login({ username, password });
       if (!response.data) {
+        // Проверяем различные типы ошибок
+        const errorData = response.rawError as any;
+        
+        // Ошибка: нет пароля (аккаунт создан через Google)
+        if (errorData?.code === 'no_password' || errorData?.use_google_login) {
+          const noPasswordError = new Error(errorData?.detail || 'Для этого аккаунта не установлен пароль. Используйте вход через Google.');
+          (noPasswordError as any).code = 'no_password';
+          (noPasswordError as any).use_google_login = true;
+          throw noPasswordError;
+        }
+        
+        // Ошибка: требуется подтверждение email
+        if (errorData?.code === 'email_not_verified' || errorData?.requires_verification) {
+          const emailVerificationError = new Error(errorData?.detail || 'Требуется подтверждение email');
+          (emailVerificationError as any).code = 'email_not_verified';
+          (emailVerificationError as any).email = errorData?.email || (username.includes('@') ? username : null);
+          throw emailVerificationError;
+        }
+        
         throw new Error(response.error || 'Ошибка авторизации');
       }
 
@@ -186,13 +237,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const updateProfile = async (data: { profile: Partial<User['profile']> }) => {
     try {
-      console.log('Update profile called with:', data); // Логирование
       const response = await api.auth.updateProfile(data);
-      console.log('Update profile response:', response); // Логирование
       if (response.data) {
         const updatedUser = response.data as User;
-        console.log('AuthContext: Setting updated user:', updatedUser); // Логирование
-        console.log('AuthContext: Updated user profile:', updatedUser.profile); // Логирование
 
         // Принудительно обновляем состояние пользователя
         setUser(prevUser => {
@@ -207,17 +254,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               ...updatedUser.profile
             }
           };
-
-          console.log('AuthContext: Merged user state:', newUser); // Логирование
           return newUser;
         });
-
-        console.log('AuthContext: User state updated successfully'); // Логирование
       } else {
         throw new Error(response.error || 'Failed to update profile');
       }
     } catch (error) {
-      console.error('Update profile error:', error); // Логирование
       throw error;
     }
   };
@@ -261,21 +303,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Email OTP methods
-  const sendOTP = async (email: string, purpose: 'login' | 'register') => {
+  const sendOTP = async (email: string, purpose: 'login' | 'register', registerData?: RegisterData) => {
     try {
-      const response = await api.auth.sendOTP({ email, purpose });
+      const data: any = { email, purpose };
+      // Добавляем данные регистрации если они переданы
+      if (purpose === 'register' && registerData) {
+        data.username = registerData.username;
+        data.password = registerData.password;
+        data.first_name = registerData.first_name;
+        data.last_name = registerData.last_name;
+      }
+      const response = await api.auth.sendOTP(data);
+      if (response.error) {
+        throw new Error(response.error);
+      }
       if (response.data) {
         return response.data as { otp_code?: string };
       }
-      throw new Error('Failed to send OTP');
+      throw new Error('Не удалось отправить код подтверждения');
     } catch (error) {
       throw error;
     }
   };
 
-  const verifyOTP = async (email: string, otpCode: string, purpose: 'login' | 'register') => {
+  const verifyOTP = async (email: string, otpCode: string, purpose: 'login' | 'register', registerData?: any) => {
     try {
-      const response = await api.auth.verifyOTP({ email, otp_code: otpCode, purpose });
+      const requestData: any = { email, otp_code: otpCode, purpose };
+
+      // Добавляем данные регистрации если они переданы
+      if (purpose === 'register' && registerData) {
+        requestData.username = registerData.username;
+        requestData.password = registerData.password;
+        requestData.first_name = registerData.first_name;
+        requestData.last_name = registerData.last_name;
+      }
+
+      const response = await api.auth.verifyOTP(requestData);
       if (response.data) {
         const loginData = response.data as LoginResponse;
         const { user: userData, tokens } = loginData;
@@ -295,11 +358,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Google OAuth methods
   const googleLogin = async (email: string, name?: string, googleToken?: string) => {
     try {
-      console.log('Google login called with:', { email, name, googleToken }); // Логирование
       const requestData = { google_token: googleToken, email, name };
-      console.log('Sending request data:', requestData); // Логирование
       const response = await api.auth.googleLogin(requestData);
-      console.log('Response:', response); // Логирование
       if (response.data) {
         const loginData = response.data as LoginResponse;
         const { user: userData, tokens } = loginData;
@@ -335,6 +395,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Direct setters for magic link authentication
+  const setTokens = (access: string, refresh: string) => {
+    localStorage.setItem('access_token', access);
+    localStorage.setItem('refresh_token', refresh);
+    localStorage.setItem('token_timestamp', Date.now().toString());
+  };
+
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
@@ -349,6 +416,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     verifyOTP,
     googleLogin,
     googleRegister,
+    setUser,
+    setTokens,
   };
 
   return (

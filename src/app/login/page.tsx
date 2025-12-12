@@ -2,17 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Card, Button, Input, Icon } from '@/components/ui';
-import { LogIn, Mail, Lock, Eye, EyeOff, UserPlus, MessageSquare } from 'lucide-react';
+import { LogIn, Key, Mail, MessageSquare } from 'lucide-react';
 import { EmailOTPLogin } from '@/components/auth/EmailOTPLogin';
 import { GoogleLogin } from '@/components/auth/GoogleLogin';
+import { useTheme } from '@/context/ThemeContext';
 
 type LoginMethod = 'password' | 'email' | 'google';
 
 export default function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth();
+  const { theme } = useTheme();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loginMethod, setLoginMethod] = useState<LoginMethod>('password');
@@ -20,9 +23,9 @@ export default function LoginPage() {
     username: '',
     password: '',
   });
-  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [persistentError, setPersistentError] = useState<string>(''); // Ошибка, которая сохраняется при переключении методов
 
   const redirectTo = searchParams.get('redirect') || '/profile';
 
@@ -52,8 +55,27 @@ export default function LoginPage() {
     try {
       await login(formData.username, formData.password);
       router.push(redirectTo);
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof Error) {
+        // Проверяем, нет ли пароля (аккаунт создан через Google)
+        if (error.code === 'no_password' || error.use_google_login) {
+          const errorMessage = 'Для этого аккаунта не установлен пароль. Пожалуйста, используйте вход через Google.';
+          setError(errorMessage);
+          setPersistentError(errorMessage); // Сохраняем ошибку для отображения на всех вкладках
+          // Переключаем на метод Google
+          setLoginMethod('google');
+          return;
+        }
+        
+        // Проверяем, требуется ли подтверждение email
+        if (error.code === 'email_not_verified' || error.message?.includes('не активирована')) {
+          const email = error.email || (formData.username.includes('@') ? formData.username : null);
+          if (email) {
+            // Перенаправляем на страницу подтверждения email
+            router.push(`/verify-email?email=${encodeURIComponent(email)}&purpose=login&from=login`);
+            return;
+          }
+        }
         setError(error.message || 'Неверное имя пользователя или пароль');
       } else {
         setError('Неверное имя пользователя или пароль');
@@ -66,26 +88,44 @@ export default function LoginPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (error) setError('');
+    // Очищаем ошибку только если это не постоянная ошибка
+    if (error && !persistentError) {
+      setError('');
+    }
+  };
+
+  const handleMethodChange = (method: LoginMethod) => {
+    setLoginMethod(method);
+    // Очищаем обычную ошибку при переключении, но сохраняем постоянную
+    if (error && !persistentError) {
+      setError('');
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-background">
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center space-x-2">
-            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center shadow-sm">
-              <span className="text-primary-foreground font-serif font-bold text-xl">NP</span>
+          <Link href="/" className="inline-flex flex-col items-center space-y-4">
+            <div className="relative">
+              <Image
+                src={theme === 'dark' ? '/np-logo-light.png' : '/np-logo-dark.png'}
+                alt="NP Perfumes Logo"
+                width={192}
+                height={192}
+                className="w-24 h-24 sm:w-32 sm:h-32 object-contain drop-shadow-lg"
+                priority
+              />
             </div>
-            <span className="text-2xl font-serif font-bold text-foreground">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground leading-tight drop-shadow-2xl">
               NP Perfumes
-            </span>
+            </h1>
           </Link>
         </div>
 
         {/* Login Form */}
-        <Card className="p-8">
+        <Card className="p-8 border border-gray-200 dark:border-border/40 shadow-xl bg-card/50 backdrop-blur-sm hover:border-gray-300 dark:hover:border-border/60">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-serif font-bold text-foreground mb-2">
               Войти в аккаунт
@@ -97,36 +137,48 @@ export default function LoginPage() {
 
           {/* Method Selection */}
           <div className="flex justify-center mb-8">
-            <div className="bg-muted rounded-lg p-1 flex">
-              <button
-                onClick={() => setLoginMethod('password')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  loginMethod === 'password'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-foreground/70 hover:text-foreground'
+            <div className="method-switcher relative rounded-2xl p-1 flex min-w-[320px] max-w-md">
+              <div
+                className={`method-switcher-indicator ${
+                  loginMethod === 'password' 
+                    ? 'left-1 right-2/3' 
+                    : loginMethod === 'email'
+                    ? 'left-1/3 right-1/3'
+                    : 'left-2/3 right-1'
                 }`}
+              />
+
+              <button
+                onClick={() => handleMethodChange('password')}
+                className={`method-switcher-button relative z-10 flex-1 px-4 py-3.5 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 ${
+                  loginMethod === 'password' ? 'active' : ''
+                }`}
+                title="Вход с паролем"
               >
-                Пароль
+                <Icon icon={Key} size={16} className="flex-shrink-0" />
+                <span>Пароль</span>
               </button>
+
               <button
-                onClick={() => setLoginMethod('email')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  loginMethod === 'email'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-foreground/70 hover:text-foreground'
+                onClick={() => handleMethodChange('email')}
+                className={`method-switcher-button relative z-10 flex-1 px-4 py-3.5 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 ${
+                  loginMethod === 'email' ? 'active' : ''
                 }`}
+                title="Вход через Email код"
               >
-                Email код
+                <Icon icon={Mail} size={16} className="flex-shrink-0" />
+                <span>Email код</span>
               </button>
+
               <button
-                onClick={() => setLoginMethod('google')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  loginMethod === 'google'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-foreground/70 hover:text-foreground'
+                onClick={() => handleMethodChange('google')}
+                className={`method-switcher-button relative z-10 flex-1 px-4 py-3.5 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 ${
+                  loginMethod === 'google' ? 'active' : ''
                 }`}
+                title="Вход через Google аккаунт"
               >
-                Google
+                <Icon icon={MessageSquare} size={16} className="flex-shrink-0" />
+                <span>Google</span>
               </button>
             </div>
           </div>
@@ -134,72 +186,44 @@ export default function LoginPage() {
           {/* Login Content */}
           {loginMethod === 'password' && (
             <>
-              <div className="text-center mb-6">
-                <p className="text-foreground/70">
-                  Введите свои данные для входа
-                </p>
-              </div>
-
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Username */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Имя пользователя или Email
-              </label>
-              <div className="relative">
-                <Icon icon={Mail} size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground/50" />
                 <Input
+                  label="Имя пользователя или Email"
                   type="text"
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
-                  className="pl-10"
-                  placeholder="Введите имя пользователя или email"
                   required
                   disabled={isSubmitting}
                 />
-              </div>
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Пароль
-              </label>
-              <div className="relative">
-                <Icon icon={Lock} size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground/50" />
                 <Input
-                  type={showPassword ? 'text' : 'password'}
+                  label="Пароль"
+                  type="password"
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="pl-10 pr-10"
-                  placeholder="Введите пароль"
                   required
                   disabled={isSubmitting}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-foreground/50 hover:text-foreground transition-colors"
-                  disabled={isSubmitting}
-                >
-                  <Icon icon={showPassword ? EyeOff : Eye} size={16} />
-                </button>
-              </div>
             </div>
 
-            {/* Error Message */}
-            {error && (
+            {/* Error Message - отображаем постоянную ошибку или обычную */}
+            {(persistentError || error) && (
               <div className="bg-red-900/20 border border-red-800 rounded-lg p-3">
-                <p className="text-sm text-red-400">{error}</p>
+                <p className="text-sm text-red-400">{persistentError || error}</p>
               </div>
             )}
 
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full flex items-center justify-center space-x-2"
+              className="w-full btn-with-icon"
               disabled={isSubmitting}
             >
               {isSubmitting ? (
@@ -235,11 +259,22 @@ export default function LoginPage() {
           )}
 
           {loginMethod === 'email' && (
-            <EmailOTPLogin
-              purpose="login"
-              onBack={() => setLoginMethod('password')}
-              onSuccess={() => router.push(redirectTo)}
-            />
+            <>
+              {/* Error Message - отображаем постоянную ошибку */}
+              {persistentError && (
+                <div className="bg-red-900/20 border border-red-800 rounded-lg p-3 mb-6">
+                  <p className="text-sm text-red-400">{persistentError}</p>
+                </div>
+              )}
+              <EmailOTPLogin
+                purpose="login"
+                onBack={() => handleMethodChange('password')}
+                onSuccess={() => {
+                  setPersistentError(''); // Очищаем постоянную ошибку при успешном входе
+                  router.push(redirectTo);
+                }}
+              />
+            </>
           )}
 
           {loginMethod === 'google' && (
@@ -250,15 +285,28 @@ export default function LoginPage() {
                 </p>
               </div>
 
+              {/* Error Message - отображаем постоянную ошибку или обычную */}
+              {(persistentError || error) && (
+                <div className="bg-red-900/20 border border-red-800 rounded-lg p-3">
+                  <p className="text-sm text-red-400">{persistentError || error}</p>
+                </div>
+              )}
+
               <GoogleLogin
                 purpose="login"
-                onSuccess={() => router.push(redirectTo)}
-                onError={(error) => setError(error)}
+                onSuccess={() => {
+                  setPersistentError(''); // Очищаем постоянную ошибку при успешном входе
+                  router.push(redirectTo);
+                }}
+                onError={(error) => {
+                  setError(error);
+                  setPersistentError(''); // Очищаем постоянную ошибку при новой ошибке
+                }}
               />
 
               <div className="text-center">
                 <button
-                  onClick={() => setLoginMethod('password')}
+                  onClick={() => handleMethodChange('password')}
                   className="text-sm text-primary hover:text-primary/80 transition-colors"
                 >
                   Или войти другим способом

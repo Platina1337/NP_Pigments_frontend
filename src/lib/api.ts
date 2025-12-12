@@ -1,4 +1,31 @@
+import { Buffer } from 'buffer'
+import type { AuthTokens } from '@/types/api'
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+
+type JwtPayload = { exp?: number; [key: string]: unknown }
+
+const decodeJwt = (token: string): JwtPayload | null => {
+  try {
+    const payload = token.split('.')[1]
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const decoded =
+      typeof window === 'undefined'
+        ? Buffer.from(normalized, 'base64').toString('binary')
+        : atob(normalized)
+    return JSON.parse(decoded) as JwtPayload
+  } catch {
+    return null
+  }
+}
+
+const isTokenExpired = (token: string | null, skewSeconds = 30): boolean => {
+  if (!token) return true
+  const payload = decodeJwt(token)
+  if (!payload?.exp) return false
+  const nowSeconds = Date.now() / 1000
+  return payload.exp - skewSeconds <= nowSeconds
+}
 
 interface ApiResponse<T = unknown> {
   data?: T
@@ -10,9 +37,70 @@ interface ApiResponse<T = unknown> {
 
 class ApiClient {
   private baseURL: string
+  private isRefreshing = false
+  private pendingRefresh: Promise<AuthTokens | null> | null = null
 
   constructor(baseURL: string) {
     this.baseURL = baseURL
+  }
+
+  private persistTokens(tokens: AuthTokens) {
+    localStorage.setItem('access_token', tokens.access)
+    localStorage.setItem('refresh_token', tokens.refresh)
+    localStorage.setItem('token_timestamp', Date.now().toString())
+  }
+
+  private clearTokens() {
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('token_timestamp')
+  }
+
+  private async refreshTokens(): Promise<AuthTokens | null> {
+    if (this.isRefreshing && this.pendingRefresh) {
+      return this.pendingRefresh
+    }
+
+    const refresh = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null
+    if (!refresh || isTokenExpired(refresh)) {
+      this.clearTokens()
+      return null
+    }
+
+    this.isRefreshing = true
+    this.pendingRefresh = (async () => {
+      try {
+        const resp = await fetch(`${this.baseURL}/auth/refresh/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh }),
+        })
+
+        const text = await resp.text()
+        const maybeJson = text ? (() => { try { return JSON.parse(text) } catch { return null } })() : null
+        if (!resp.ok || !maybeJson) {
+          this.clearTokens()
+          return null
+        }
+        const access = (maybeJson as any).access
+        const newRefresh = (maybeJson as any).refresh || refresh
+        if (access) {
+          const tokens = { access, refresh: newRefresh } as AuthTokens
+          this.persistTokens(tokens)
+          return tokens
+        }
+        this.clearTokens()
+        return null
+      } catch {
+        this.clearTokens()
+        return null
+      } finally {
+        this.isRefreshing = false
+        this.pendingRefresh = null
+      }
+    })()
+
+    return this.pendingRefresh
   }
 
   private async request<T>(
@@ -53,12 +141,21 @@ class ApiClient {
       return { message: 'Произошла ошибка', raw: body }
     }
 
+    const isAuthEndpoint = endpoint.includes('/auth/')
+
     try {
       const url = `${this.baseURL}${endpoint}`
 
       // Добавляем токен авторизации если он есть (кроме Google OAuth и публичных эндпоинтов)
-      // Проверяем, что мы на клиенте, так как localStorage недоступен на сервере
       const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+      const refresh = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null
+
+      let authToken = token
+      if (!isAuthEndpoint && isTokenExpired(token) && refresh) {
+        const refreshed = await this.refreshTokens()
+        authToken = refreshed?.access || null
+      }
+
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         ...options.headers as Record<string, string>,
@@ -72,11 +169,19 @@ class ApiClient {
         '/pigments/',
         '/theme/public/',
         '/theme/',
+        '/auth/register/',
+        '/auth/login/',
+        '/auth/refresh/',
+        '/auth/otp/send/',
+        '/auth/otp/verify/',
+        '/auth/magic-link/verify/',
+        '/auth/google/login/',
+        '/auth/google/register/',
       ]
 
       // Не отправляем токен авторизации для Google OAuth запросов и публичных эндпоинтов
-      if (token && !endpoint.includes('/auth/google/') && !publicEndpoints.some(publicEndpoint => endpoint.includes(publicEndpoint))) {
-        headers['Authorization'] = `Bearer ${token}`
+      if (authToken && !endpoint.includes('/auth/google/') && !publicEndpoints.some(publicEndpoint => endpoint.includes(publicEndpoint))) {
+        headers['Authorization'] = `Bearer ${authToken}`
       }
 
       const response = await fetch(url, {
@@ -86,6 +191,29 @@ class ApiClient {
 
       const text = await response.text()
       const maybeJson = text ? (() => { try { return JSON.parse(text) } catch { return null } })() : null
+
+      if (response.status === 401 && !isAuthEndpoint) {
+        // Пытаемся рефрешнуть и повторить запрос один раз
+        const refreshed = await this.refreshTokens()
+        if (refreshed?.access) {
+          const retryHeaders = {
+            ...headers,
+            Authorization: `Bearer ${refreshed.access}`,
+          }
+          const retryResponse = await fetch(url, {
+            headers: retryHeaders,
+            ...options,
+          })
+          const retryText = await retryResponse.text()
+          const retryJson = retryText ? (() => { try { return JSON.parse(retryText) } catch { return null } })() : null
+          if (!retryResponse.ok) {
+            const { message, raw } = extractErrorMessage(retryJson ?? retryText)
+            return { error: message, rawError: raw ?? retryJson ?? retryText, status: retryResponse.status }
+          }
+          return { data: (retryJson ?? (retryText as unknown)) as T, status: retryResponse.status }
+        }
+        this.clearTokens()
+      }
 
       if (!response.ok) {
         const { message, raw } = extractErrorMessage(maybeJson ?? text)
@@ -116,7 +244,6 @@ class ApiClient {
   }
 
   async post<T>(endpoint: string, data?: Record<string, unknown>): Promise<ApiResponse<T>> {
-    console.log(`POST ${endpoint} with data:`, data); // Логирование
     return this.request<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
@@ -165,13 +292,14 @@ export const api = {
       apiClient.post('/auth/otp/send/', data),
     verifyOTP: (data: { email: string; otp_code: string; purpose: 'login' | 'register' }) =>
       apiClient.post('/auth/otp/verify/', data),
+    // Magic Link
+    verifyMagicLink: (data: { token: string; purpose: 'login' | 'register'; username?: string; password?: string; first_name?: string; last_name?: string }) =>
+      apiClient.post('/auth/magic-link/verify/', data),
     // Google OAuth
     googleLogin: (requestData: { google_token?: string; email: string; name?: string }) => {
-      console.log('API googleLogin called with:', requestData); // Логирование
       return apiClient.post('/auth/google/login/', requestData);
     },
     googleRegister: (requestData: { google_token?: string; email: string; name?: string }) => {
-      console.log('API googleRegister called with:', requestData); // Логирование
       return apiClient.post('/auth/google/register/', requestData);
     },
   },
@@ -194,6 +322,10 @@ export const api = {
     sync: (items: Array<{ product_type: string; product_id: number; quantity: number }>) =>
       apiClient.post('/cart/sync/', { items }),
   },
+  products: {
+    getBatchDetails: (data: { perfumes: number[], pigments: number[] }) =>
+      apiClient.post('/sync/prices/', data),
+  },
   wishlist: {
     get: () => apiClient.get('/wishlist/'),
     list: () => apiClient.get('/wishlist-items/'),
@@ -203,7 +335,7 @@ export const api = {
     removeByProduct: (product_type: 'perfume' | 'pigment', product_id: number) =>
       apiClient.delete(`/wishlist-items/by-product/?product_type=${product_type}&product_id=${product_id}`),
     status: (product_type: 'perfume' | 'pigment', product_id: number) =>
-      apiClient.get('/wishlist-items/status/', { product_type, product_id }),
+      apiClient.get('/wishlist-items/status/', { product_type, product_id: String(product_id) }),
     bulkAdd: (items: Array<{ product_type: 'perfume' | 'pigment'; product_id: number }>) =>
       apiClient.post('/wishlist-items/bulk-add/', { items }),
   },
@@ -216,10 +348,17 @@ export const api = {
     history: (params?: Record<string, string>) => apiClient.get('/orders/history/', params),
   },
 
+  // Loyalty
+  loyalty: {
+    account: () => apiClient.get('/loyalty/account/'),
+    transactions: () => apiClient.get('/loyalty/transactions/'),
+  },
+
   // Perfumes
   perfumes: {
     getAll: (params?: Record<string, string>) => apiClient.get('/perfumes/', params),
     getById: (id: number) => apiClient.get(`/perfumes/${id}/`),
+    getBySlug: (slug: string) => apiClient.get(`/perfumes/by-slug/${slug}/`),
     getFeatured: () => apiClient.get('/perfumes/featured/'),
     getInStock: () => apiClient.get('/perfumes/in_stock/'),
     create: (data: Record<string, unknown>) => apiClient.post('/perfumes/', data),
@@ -231,6 +370,7 @@ export const api = {
   pigments: {
     getAll: (params?: Record<string, string>) => apiClient.get('/pigments/', params),
     getById: (id: number) => apiClient.get(`/pigments/${id}/`),
+    getBySlug: (slug: string) => apiClient.get(`/pigments/by-slug/${slug}/`),
     getFeatured: () => apiClient.get('/pigments/featured/'),
     getInStock: () => apiClient.get('/pigments/in_stock/'),
     create: (data: Record<string, unknown>) => apiClient.post('/pigments/', data),
@@ -283,8 +423,11 @@ export const categoriesApi = api.categories
 export const brandsApi = api.brands
 
 // Utility functions
-export const formatPrice = (price: number): string => {
-  return `${price.toLocaleString('ru-RU')} ₽`
+export const formatPrice = (price: number | string | null | undefined): string => {
+  if (price === null || price === undefined || price === '') return '—'
+  const numeric = typeof price === 'string' ? parseFloat(price) : price
+  if (Number.isNaN(numeric)) return '—'
+  return `${numeric.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ₽`
 }
 
 export const formatVolume = (volume: number): string => {

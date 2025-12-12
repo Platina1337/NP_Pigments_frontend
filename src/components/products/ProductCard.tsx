@@ -1,7 +1,15 @@
+'use client'
+
 import Link from 'next/link'
 import { clsx } from 'clsx'
+import { useState } from 'react'
+import { Heart } from 'lucide-react'
 import { formatPrice, formatVolume, formatWeight, formatGender, getImageUrl } from '@/lib/api'
+import { getPriceInfo } from '@/lib/product-pricing'
 import type { Perfume, Pigment } from '@/types/api'
+import { useFavorites } from '@/context/FavoritesContext'
+import { useCart } from '@/context/CartContext'
+import { Check, ShoppingBag } from 'lucide-react'
 
 export type CatalogProduct = (Perfume & { productType: 'perfume' }) | (Pigment & { productType: 'pigment' })
 
@@ -23,9 +31,43 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, isRecent }: ProductCardProps) {
+    const { currentPrice, originalPrice, hasDiscount } = getPriceInfo(product)
+    const { toggleFavorite, isFavorite } = useFavorites()
+    const { addItem, state } = useCart()
+    const [pending, setPending] = useState(false)
+    const [adding, setAdding] = useState(false)
+    const [justAdded, setJustAdded] = useState(false)
+    const favorite = isFavorite(product.id, product.productType)
+    const discountPercent =
+        hasDiscount && originalPrice > 0
+            ? Math.max(1, Math.round((1 - currentPrice / originalPrice) * 100))
+            : null
+    const inCart = state.items.some(
+        (item) => item.perfume.id === product.id && item.productType === product.productType
+    )
+
+    const onToggleFavorite = async (event: React.MouseEvent) => {
+        event.preventDefault()
+        event.stopPropagation()
+        if (pending) return
+        setPending(true)
+        try {
+            await toggleFavorite({
+                id: product.id,
+                productType: product.productType,
+                name: product.name,
+                image: product.image,
+                price: currentPrice,
+                data: product,
+            })
+        } finally {
+            setPending(false)
+        }
+    }
+
     return (
         <Link
-            href={`/products/${product.id}`}
+            href={`/products/${product.slug || product.id}`}
             className="group relative flex flex-col overflow-hidden rounded-3xl bg-card border border-black/10 dark:border-border/40 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1"
         >
             <div className="relative aspect-[4/5] overflow-hidden bg-secondary/20">
@@ -38,24 +80,28 @@ export function ProductCard({ product, isRecent }: ProductCardProps) {
                 {/* Overlay gradient on hover */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-                {/* Badges */}
-                <div className="absolute top-4 left-4 flex flex-col gap-2">
-                    {product.featured && (
-                        <span className="inline-flex items-center rounded-full bg-white/90 backdrop-blur-sm px-3 py-1 text-xs font-semibold text-primary shadow-sm">
-                            ★ Выбор
-                        </span>
-                    )}
-                    {isRecent && (
-                        <span className="inline-flex items-center rounded-full bg-emerald-500/90 backdrop-blur-sm px-3 py-1 text-xs font-semibold text-white shadow-sm">
-                            New
-                        </span>
-                    )}
-                </div>
-
-                <div className="absolute top-4 right-4">
+                {/* Badges row */}
+                <div className="absolute top-4 left-4 right-16 flex items-center justify-between gap-3 pointer-events-none">
+                    <div className="flex flex-wrap items-center gap-2">
+                        {hasDiscount && (
+                            <span className="inline-flex items-center rounded-full bg-red-500/90 backdrop-blur-sm px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                                {discountPercent ? `-${discountPercent}%` : 'Скидка'}
+                            </span>
+                        )}
+                        {product.featured && (
+                            <span className="inline-flex items-center rounded-full bg-white/90 backdrop-blur-sm px-3 py-1 text-xs font-semibold text-primary shadow-sm">
+                                ★ Выбор
+                            </span>
+                        )}
+                        {isRecent && (
+                            <span className="inline-flex items-center rounded-full bg-emerald-500/90 backdrop-blur-sm px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                                New
+                            </span>
+                        )}
+                    </div>
                     <span
                         className={clsx(
-                            'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm shadow-sm',
+                            'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm shadow-sm pointer-events-auto',
                             product.productType === 'perfume'
                                 ? 'bg-primary/20 text-white border border-white/20'
                                 : 'bg-amber-500/20 text-white border border-white/20'
@@ -63,6 +109,22 @@ export function ProductCard({ product, isRecent }: ProductCardProps) {
                     >
                         {TYPE_LABELS[product.productType]}
                     </span>
+                </div>
+
+                <div className="absolute top-4 right-4 flex items-center gap-2">
+                    <button
+                        aria-label="Добавить в избранное"
+                        onClick={onToggleFavorite}
+                        className={clsx(
+                            'flex h-10 w-10 items-center justify-center rounded-full border transition-all backdrop-blur-sm',
+                            favorite
+                                ? 'bg-primary text-white border-primary'
+                                : 'bg-black/40 text-white border-white/20 hover:border-primary hover:text-primary'
+                        )}
+                        disabled={pending}
+                    >
+                        <Heart className={clsx('h-5 w-5', favorite && 'fill-white')} />
+                    </button>
                 </div>
 
                 {/* Status badge (bottom left) */}
@@ -83,6 +145,9 @@ export function ProductCard({ product, isRecent }: ProductCardProps) {
                     <h3 className="text-lg font-bold text-foreground leading-tight group-hover:text-primary transition-colors duration-300">
                         {product.name}
                     </h3>
+                    {product.sku && (
+                        <p className="text-xs text-foreground/50 mt-1">SKU: {product.sku}</p>
+                    )}
                 </div>
 
                 <div className="mt-auto space-y-4">
@@ -116,12 +181,49 @@ export function ProductCard({ product, isRecent }: ProductCardProps) {
                     </div>
 
                     <div className="flex items-center justify-between pt-2">
-                        <p className="text-xl font-bold text-primary">
-                            {formatPrice(product.price)}
-                        </p>
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0">
-                            →
+                        <div className="flex flex-col">
+                            {/* Show price range for multi-volume/weight products */}
+                            {((product.productType === 'perfume' && product.has_multiple_volumes) ||
+                                (product.productType === 'pigment' && 'has_multiple_weights' in product && product.has_multiple_weights)) ? (
+                                <p className="text-xl font-bold text-primary">
+                                    от {formatPrice(product.min_price ?? currentPrice)}
+                                </p>
+                            ) : (
+                                <>
+                                    <p className="text-xl font-bold text-primary">
+                                        {formatPrice(currentPrice)}
+                                    </p>
+                                    {hasDiscount && (
+                                        <span className="text-sm line-through text-foreground/50">
+                                            {formatPrice(originalPrice as unknown as number)}
+                                        </span>
+                                    )}
+                                </>
+                            )}
                         </div>
+                        <button
+                            aria-label={inCart || justAdded ? 'Уже в корзине' : 'Добавить в корзину'}
+                            className={clsx(
+                                'h-10 w-10 rounded-full text-white flex items-center justify-center transition-all duration-200 shadow-md',
+                                'bg-primary hover:bg-primary/90',
+                                adding ? 'opacity-80 scale-95' : 'hover:scale-105 active:scale-95'
+                            )}
+                            onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                if (adding) return
+                                setAdding(true)
+                                try {
+                                    addItem(product as unknown as Perfume, product.productType)
+                                    setJustAdded(true)
+                                    setTimeout(() => setJustAdded(false), 1200)
+                                } finally {
+                                    setTimeout(() => setAdding(false), 200)
+                                }
+                            }}
+                        >
+                            {inCart || justAdded ? <Check className="h-5 w-5" /> : <ShoppingBag className="h-5 w-5" />}
+                        </button>
                     </div>
                 </div>
             </div>

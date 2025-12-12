@@ -2,18 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Card, Button, Input, Icon } from '@/components/ui';
-import { UserPlus, Mail, Lock, Eye, EyeOff, User, Check, MessageSquare } from 'lucide-react';
+import { UserPlus, MessageSquare, Key, Shield, Zap } from 'lucide-react';
 import { RegisterData } from '@/types/api';
-import { EmailOTPLogin } from '@/components/auth/EmailOTPLogin';
 import { GoogleLogin } from '@/components/auth/GoogleLogin';
+import { useTheme } from '@/context/ThemeContext';
 
 type RegisterMethod = 'password' | 'email' | 'google';
 
 export default function RegisterPage() {
-  const { register, isAuthenticated, isLoading } = useAuth();
+  const { sendOTP, isAuthenticated, isLoading } = useAuth();
+  const { theme } = useTheme();
   const router = useRouter();
   const [formData, setFormData] = useState<RegisterData>({
     username: '',
@@ -24,11 +26,8 @@ export default function RegisterPage() {
     last_name: '',
   });
   const [registerMethod, setRegisterMethod] = useState<RegisterMethod>('password');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -67,20 +66,24 @@ export default function RegisterPage() {
     }
 
     try {
-      await register(formData);
-      setSuccess(true);
-      setTimeout(() => {
-        router.push('/profile');
-      }, 2000);
-    } catch (error: any) {
-      if (error.message) {
-        setError(error.message);
-      } else {
-        setError('Произошла ошибка при регистрации. Попробуйте еще раз.');
+        // Сохраняем данные формы для использования на странице подтверждения (fallback)
+        localStorage.setItem('registerFormData', JSON.stringify(formData));
+        
+        // Отправляем OTP код с данными регистрации
+        await sendOTP(formData.email, 'register', formData);
+        
+        // Перенаправляем на страницу подтверждения
+        router.push(`/verify-email?email=${encodeURIComponent(formData.email)}&purpose=register`);
+        
+      } catch (error: any) {
+        if (error.message) {
+          setError(error.message);
+        } else {
+          setError('Не удалось отправить код подтверждения. Попробуйте еще раз.');
+        }
+      } finally {
+        setIsSubmitting(false);
       }
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,44 +92,30 @@ export default function RegisterPage() {
     if (error) setError('');
   };
 
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4 py-12">
-        <Card className="p-8 text-center max-w-md">
-          <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Icon icon={Check} size={32} className="text-green-600 dark:text-green-400" />
-          </div>
-          <h1 className="text-2xl font-serif font-bold text-foreground mb-2">
-            Регистрация успешна!
-          </h1>
-          <p className="text-foreground/70 mb-6">
-            Ваш аккаунт создан. Перенаправляем в личный кабинет...
-          </p>
-          <Button onClick={() => router.push('/profile')}>
-            Перейти в профиль
-          </Button>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-background">
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center space-x-2">
-            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center shadow-sm">
-              <span className="text-primary-foreground font-serif font-bold text-xl">NP</span>
+          <Link href="/" className="inline-flex flex-col items-center space-y-4">
+            <div className="relative">
+              <Image
+                src={theme === 'dark' ? '/np-logo-light.png' : '/np-logo-dark.png'}
+                alt="NP Perfumes Logo"
+                width={192}
+                height={192}
+                className="w-24 h-24 sm:w-32 sm:h-32 object-contain drop-shadow-lg"
+                priority
+              />
             </div>
-            <span className="text-2xl font-serif font-bold text-foreground">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground leading-tight drop-shadow-2xl">
               NP Perfumes
-            </span>
+            </h1>
           </Link>
         </div>
 
         {/* Register Form */}
-        <Card className="p-8">
+        <Card className="p-8 border border-gray-200 dark:border-border/40 shadow-xl bg-card/50 backdrop-blur-sm hover:border-gray-300 dark:hover:border-border/60">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-serif font-bold text-foreground mb-2">
               Создать аккаунт
@@ -138,36 +127,33 @@ export default function RegisterPage() {
 
           {/* Method Selection */}
           <div className="flex justify-center mb-8">
-            <div className="bg-muted rounded-lg p-1 flex">
+            <div className="method-switcher relative rounded-2xl p-1 flex min-w-[320px] max-w-md">
+              <div
+                className={`method-switcher-indicator ${
+                  registerMethod === 'password' ? 'left-1 right-1/2' : 'left-1/2 right-1'
+                }`}
+              />
+
               <button
                 onClick={() => setRegisterMethod('password')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  registerMethod === 'password'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-foreground/70 hover:text-foreground'
+                className={`method-switcher-button relative z-10 flex-1 px-4 py-3.5 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 ${
+                  registerMethod === 'password' ? 'active' : ''
                 }`}
+                title="Полная регистрация с паролем и личными данными"
               >
-                С паролем
+                <Icon icon={Key} size={16} className="flex-shrink-0" />
+                <span>Классика</span>
               </button>
-              <button
-                onClick={() => setRegisterMethod('email')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  registerMethod === 'email'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-foreground/70 hover:text-foreground'
-                }`}
-              >
-                Email код
-              </button>
+
               <button
                 onClick={() => setRegisterMethod('google')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  registerMethod === 'google'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-foreground/70 hover:text-foreground'
+                className={`method-switcher-button relative z-10 flex-1 px-4 py-3.5 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 ${
+                  registerMethod === 'google' ? 'active' : ''
                 }`}
+                title="Регистрация через Google аккаунт"
               >
-                Google
+                <Icon icon={MessageSquare} size={16} className="flex-shrink-0" />
+                <span>Google</span>
               </button>
             </div>
           </div>
@@ -175,137 +161,81 @@ export default function RegisterPage() {
           {/* Register Content */}
           {registerMethod === 'password' && (
             <>
-              <div className="text-center mb-6">
-                <p className="text-foreground/70">
-                  Заполните форму для регистрации
-                </p>
-              </div>
-
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Username */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Имя пользователя *
-              </label>
-              <div className="relative">
-                <Icon icon={User} size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground/50" />
                 <Input
+                  label="Имя пользователя *"
                   type="text"
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
-                  className="pl-10"
-                  placeholder="Придумайте имя пользователя"
                   required
                   disabled={isSubmitting}
                 />
-              </div>
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Email *
-              </label>
-              <div className="relative">
-                <Icon icon={Mail} size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground/50" />
                 <Input
+                  label="Email *"
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="pl-10"
-                  placeholder="your@email.com"
                   required
                   disabled={isSubmitting}
                 />
-              </div>
             </div>
 
             {/* First Name & Last Name */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Имя
-                </label>
-                <Input
-                  type="text"
-                  name="first_name"
-                  value={formData.first_name}
-                  onChange={handleInputChange}
-                  placeholder="Ваше имя"
-                  disabled={isSubmitting}
-                />
+                  <Input
+                    label="Имя"
+                    type="text"
+                    name="first_name"
+                    value={formData.first_name}
+                    onChange={handleInputChange}
+                    disabled={isSubmitting}
+                  />
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Фамилия
-                </label>
-                <Input
-                  type="text"
-                  name="last_name"
-                  value={formData.last_name}
-                  onChange={handleInputChange}
-                  placeholder="Ваша фамилия"
-                  disabled={isSubmitting}
-                />
+                  <Input
+                    label="Фамилия"
+                    type="text"
+                    name="last_name"
+                    value={formData.last_name}
+                    onChange={handleInputChange}
+                    disabled={isSubmitting}
+                  />
               </div>
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Пароль *
-              </label>
-              <div className="relative">
-                <Icon icon={Lock} size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground/50" />
                 <Input
-                  type={showPassword ? 'text' : 'password'}
+                  label="Пароль *"
+                  type="password"
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="pl-10 pr-10"
-                  placeholder="Минимум 8 символов"
                   required
                   disabled={isSubmitting}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-foreground/50 hover:text-foreground transition-colors"
-                  disabled={isSubmitting}
-                >
-                  <Icon icon={showPassword ? EyeOff : Eye} size={16} />
-                </button>
-              </div>
             </div>
 
             {/* Confirm Password */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Подтверждение пароля *
-              </label>
-              <div className="relative">
-                <Icon icon={Lock} size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground/50" />
                 <Input
-                  type={showConfirmPassword ? 'text' : 'password'}
+                  label="Подтверждение пароля *"
+                  type="password"
                   name="password2"
                   value={formData.password2}
                   onChange={handleInputChange}
-                  className="pl-10 pr-10"
-                  placeholder="Повторите пароль"
                   required
                   disabled={isSubmitting}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-foreground/50 hover:text-foreground transition-colors"
-                  disabled={isSubmitting}
-                >
-                  <Icon icon={showConfirmPassword ? EyeOff : Eye} size={16} />
-                </button>
-              </div>
             </div>
 
             {/* Error Message */}
@@ -318,7 +248,7 @@ export default function RegisterPage() {
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full flex items-center justify-center space-x-2"
+              className="w-full btn-with-icon"
               disabled={isSubmitting}
             >
               {isSubmitting ? (
@@ -326,7 +256,9 @@ export default function RegisterPage() {
               ) : (
                 <Icon icon={UserPlus} size={16} />
               )}
-              <span>{isSubmitting ? 'Регистрация...' : 'Зарегистрироваться'}</span>
+              <span>
+                {isSubmitting ? 'Обработка...' : 'Зарегистрироваться'}
+              </span>
             </Button>
           </form>
 
@@ -345,20 +277,24 @@ export default function RegisterPage() {
             </>
           )}
 
-          {registerMethod === 'email' && (
-            <EmailOTPLogin
-              purpose="register"
-              onBack={() => setRegisterMethod('password')}
-              onSuccess={() => router.push('/profile')}
-            />
-          )}
 
           {registerMethod === 'google' && (
             <div className="space-y-6">
               <div className="text-center mb-6">
-                <p className="text-foreground/70">
-                  Регистрация через аккаунт Google
-                </p>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 text-sm font-medium mb-2">
+                  <Icon icon={MessageSquare} size={14} />
+                  <span>Через Google</span>
+                </div>
+                <div className="flex justify-center gap-3 mt-3">
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border/60 bg-secondary/40 hover:bg-secondary/60 hover:border-primary/30 transition-all duration-200 cursor-default">
+                    <Icon icon={Shield} size={12} />
+                    Безопасно
+                  </span>
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border/60 bg-secondary/40 hover:bg-secondary/60 hover:border-primary/30 transition-all duration-200 cursor-default">
+                    <Icon icon={Zap} size={12} />
+                    5 секунд
+                  </span>
+                </div>
               </div>
 
               <GoogleLogin

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Star, ThumbsUp, Flag, MessageCircle, User } from 'lucide-react';
+import { Star, ThumbsUp, Flag, MessageCircle, User, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { FilterSelect } from '@/components/ui/FilterSelect'
 
@@ -92,24 +92,24 @@ const ReviewItem: React.FC<{ review: Review }> = ({ review }) => {
   };
 
   return (
-    <div className="border-b border-gray-200 pb-6 last:border-b-0 last:pb-0">
+    <div className="group rounded-2xl border-0 bg-white/85 p-4 shadow-sm transition-all duration-300 sm:border sm:border-slate-200 sm:bg-white/50 sm:p-6 sm:hover:border-slate-300 sm:hover:bg-white sm:hover:shadow-lg sm:dark:border-white/5 dark:bg-white/5 dark:shadow-none sm:dark:hover:border-white/10 dark:hover:bg-white/10">
       <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-            <User className="w-5 h-5 text-gray-600" />
+        <div className="flex items-center space-x-4">
+          <div className="w-12 h-12 bg-slate-100 dark:bg-white/10 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+            <User className="w-6 h-6 text-slate-500 dark:text-slate-400" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="font-medium text-gray-900">{review.user_name}</span>
+              <span className="font-bold text-slate-900 dark:text-white text-lg">{review.user_name}</span>
               {review.verified_purchase && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300">
                   ✓ Покупатель
                 </span>
               )}
             </div>
-            <div className="flex items-center space-x-2 mt-1">
+            <div className="flex items-center space-x-3 mt-1">
               <StarRating rating={review.rating} size="sm" />
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-slate-500 dark:text-slate-400">
                 {new Date(review.created_at).toLocaleDateString('ru-RU')}
               </span>
             </div>
@@ -117,23 +117,23 @@ const ReviewItem: React.FC<{ review: Review }> = ({ review }) => {
         </div>
       </div>
 
-      <p className="text-gray-700 mb-4 leading-relaxed">{review.comment}</p>
+      <p className="text-slate-700 dark:text-slate-300 mb-6 leading-relaxed">{review.comment}</p>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between sm:border-t sm:border-slate-100 sm:dark:border-white/5 sm:pt-4 sm:mt-4">
         <button
           onClick={handleHelpful}
           disabled={isHelpful}
-          className={`flex items-center space-x-1 text-sm transition-colors ${
+          className={`flex items-center space-x-2 text-sm font-medium transition-colors ${
             isHelpful
-              ? 'text-green-600'
-              : 'text-gray-600 hover:text-green-600'
+              ? 'text-emerald-600 dark:text-emerald-400'
+              : 'text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400'
           }`}
         >
-          <ThumbsUp className="w-4 h-4" />
+          <ThumbsUp className={`w-4 h-4 ${isHelpful ? 'fill-current' : ''}`} />
           <span>Полезно ({helpfulCount})</span>
         </button>
 
-        <button className="flex items-center space-x-1 text-sm text-gray-600 hover:text-gray-800 transition-colors">
+        <button className="flex items-center space-x-2 text-sm font-medium text-slate-400 hover:text-red-500 transition-colors dark:text-slate-500 dark:hover:text-red-400">
           <Flag className="w-4 h-4" />
           <span>Пожаловаться</span>
         </button>
@@ -172,53 +172,55 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => 
   const displayedReviews = showAllReviews ? sortedReviews : sortedReviews.slice(0, 3);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <div className="p-8">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">Отзывы покупателей</h2>
-          <button className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200 hover:border-blue-300 rounded-xl text-blue-700 hover:text-blue-800 transition-all duration-300 hover:shadow-md">
+    <section className="bg-transparent p-0 sm:rounded-[32px] sm:border sm:border-slate-200 sm:bg-white/85 sm:p-8 sm:shadow-[0_20px_60px_rgba(15,23,42,0.08)] dark:border-white/10 sm:dark:bg-slate-900/70">
+      <div className="space-y-8 sm:space-y-10">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Отзывы покупателей</h2>
+          <button className="group flex items-center gap-2 w-full justify-center sm:w-auto px-4 py-2 bg-gradient-to-r from-slate-50 to-slate-100 hover:from-slate-100 hover:to-slate-200 border border-slate-200 hover:border-slate-300 rounded-xl text-slate-700 transition-all duration-300 hover:shadow-md dark:from-white/5 dark:to-white/10 dark:border-white/10 dark:text-white">
             <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
             <span className="text-sm font-medium">Написать отзыв</span>
           </button>
         </div>
 
         {/* Rating Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div className="text-center md:text-left">
-            <div className="flex items-center justify-center md:justify-start mb-4">
-              <span className="text-5xl font-bold text-gray-900 mr-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-12 p-0 sm:p-6 sm:rounded-2xl sm:bg-slate-50/50 sm:dark:bg-white/5 sm:border sm:border-slate-100 sm:dark:border-white/5">
+          <div className="flex flex-col justify-center">
+            <div className="flex items-baseline gap-4">
+              <span className="text-6xl font-bold text-slate-900 dark:text-white">
                 {averageRating.toFixed(1)}
               </span>
-              <div>
-                <StarRating rating={Math.round(averageRating)} size="lg" />
-                <p className="text-sm text-gray-600 mt-1">
-                  {mockReviews.length} отзывов
+              <div className="flex flex-col">
+                <div className="flex mb-1">
+                    <StarRating rating={Math.round(averageRating)} size="md" />
+                </div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  На основе {mockReviews.length} отзывов
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             {ratingDistribution.reverse().map(({ rating, count, percentage }) => (
-              <div key={rating} className="flex items-center space-x-3">
-                <span className="text-sm font-medium w-8">{rating}</span>
-                <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
+              <div key={rating} className="flex items-center gap-3 group">
+                <span className="text-sm font-medium w-3 text-slate-700 dark:text-slate-300">{rating}</span>
+                <Star className="w-4 h-4 text-slate-300 dark:text-slate-600" />
+                <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                   <div
-                    className="bg-yellow-400 h-2 rounded-full"
+                    className="h-full bg-yellow-400 rounded-full transition-all duration-500 group-hover:bg-yellow-300"
                     style={{ width: `${percentage}%` }}
-                  ></div>
+                  />
                 </div>
-                <span className="text-sm text-gray-600 w-8">{count}</span>
+                <span className="text-sm text-slate-500 dark:text-slate-400 w-8 text-right">{count}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Sort Options */}
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">Все отзывы</h3>
-          <div className="w-48">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Все отзывы</h3>
+          <div className="w-full sm:w-56">
             <FilterSelect
               label="Сортировка"
               value={sortBy}
@@ -241,21 +243,17 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => 
 
         {/* Show More Button */}
         {mockReviews.length > 3 && (
-          <div className="text-center mt-8">
+          <div className="text-center mt-10">
             <button
               onClick={() => setShowAllReviews(!showAllReviews)}
-              className="group inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 hover:border-emerald-300 rounded-xl text-emerald-700 hover:text-emerald-800 transition-all duration-300 hover:shadow-lg font-medium"
+              className="group inline-flex items-center gap-2 px-6 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 rounded-xl text-slate-700 dark:text-slate-200 transition-all duration-300 hover:shadow-lg font-medium"
             >
               <span>{showAllReviews ? 'Показать меньше' : `Показать все отзывы (${mockReviews.length})`}</span>
-              <div className={`w-4 h-4 transition-transform duration-300 ${showAllReviews ? 'rotate-180' : ''}`}>
-                <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
+              <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${showAllReviews ? 'rotate-180' : ''}`} />
             </button>
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 };

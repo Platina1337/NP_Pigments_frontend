@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { clsx } from 'clsx'
 import { Filter, Search, SlidersHorizontal, Sparkles, RefreshCw, X, PackageOpen, Stars, ChevronDown, Check, ArrowUp, Info } from 'lucide-react'
 import { Button } from '@/components/ui'
@@ -19,6 +20,8 @@ import {
   getImageUrl,
 } from '@/lib/api'
 import type { Brand, Category, Perfume, Pigment } from '@/types/api'
+import { useFavorites } from '@/context/FavoritesContext'
+import { useTheme } from '@/context/ThemeContext'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,7 +38,9 @@ type CatalogFilters = {
   gender: 'all' | 'M' | 'F' | 'U'
   applicationType: 'all' | ApplicationType
   inStockOnly: boolean
+  onSaleOnly: boolean
   featuredOnly: boolean
+  favoritesOnly: boolean
   sortBy: 'featured' | 'price_asc' | 'price_desc' | 'newest'
 }
 
@@ -54,7 +59,9 @@ const defaultFilters: CatalogFilters = {
   gender: 'all',
   applicationType: 'all',
   inStockOnly: false,
+  onSaleOnly: false,
   featuredOnly: false,
+  favoritesOnly: false,
   sortBy: 'featured',
 }
 
@@ -522,20 +529,20 @@ const FiltersPanel: React.FC<FiltersPanelProps> = ({
           <div className="flex justify-between items-start">
             <div className="space-y-0.5">
               <p className="text-sm font-medium text-foreground leading-tight">Избранное</p>
-              <p className="text-[10px] text-foreground/60 leading-tight">Лучшие композиции</p>
+              <p className="text-[10px] text-foreground/60 leading-tight">Мои избранные товары</p>
             </div>
             <div className={clsx(
               "w-5 h-5 rounded-full border flex items-center justify-center transition-colors duration-200",
-              filters.featuredOnly ? "bg-primary border-primary" : "border-foreground/30 bg-transparent"
+              filters.favoritesOnly ? "bg-primary border-primary" : "border-foreground/30 bg-transparent"
             )}>
-              {filters.featuredOnly && <Check className="w-3 h-3 text-white" />}
+              {filters.favoritesOnly && <Check className="w-3 h-3 text-white" />}
             </div>
           </div>
           <input
             type="checkbox"
             className="sr-only"
-            checked={filters.featuredOnly}
-            onChange={(event) => setFilters((prev) => ({ ...prev, featuredOnly: event.target.checked }))}
+            checked={filters.favoritesOnly}
+            onChange={(event) => setFilters((prev) => ({ ...prev, favoritesOnly: event.target.checked }))}
           />
         </label>
       </section>
@@ -544,10 +551,36 @@ const FiltersPanel: React.FC<FiltersPanelProps> = ({
 }
 
 export default function ProductsPage() {
+  const { isFavorite } = useFavorites()
+  const { theme } = useTheme()
+  const searchParams = useSearchParams()
   const [products, setProducts] = useState<CatalogProduct[]>([])
   const [brands, setBrands] = useState<Brand[]>([])
   const [categories, setCategories] = useState<Category[]>([])
-  const [filters, setFilters] = useState<CatalogFilters>(defaultFilters)
+  
+  // Инициализируем фильтры из URL параметров
+  const initialFilters = useMemo(() => {
+    const urlSearch = searchParams.get('search')
+    const urlType = searchParams.get('type')
+    const urlGender = searchParams.get('gender')
+    const urlBrandId = searchParams.get('brandId')
+    const urlCategoryId = searchParams.get('categoryId')
+    const urlInStockOnly = searchParams.get('inStockOnly')
+    const urlOnSaleOnly = searchParams.get('onSaleOnly')
+    
+    return {
+      ...defaultFilters,
+      search: urlSearch || defaultFilters.search,
+      type: (urlType === 'perfume' || urlType === 'pigment') ? urlType : defaultFilters.type,
+      gender: (urlGender === 'M' || urlGender === 'F' || urlGender === 'U') ? urlGender : defaultFilters.gender,
+      brandId: urlBrandId ? (isNaN(Number(urlBrandId)) ? 'all' : Number(urlBrandId)) : defaultFilters.brandId,
+      categoryId: urlCategoryId ? (isNaN(Number(urlCategoryId)) ? 'all' : Number(urlCategoryId)) : defaultFilters.categoryId,
+      inStockOnly: urlInStockOnly === 'true' ? true : defaultFilters.inStockOnly,
+      onSaleOnly: urlOnSaleOnly === 'true' ? true : defaultFilters.onSaleOnly,
+    }
+  }, [searchParams])
+  
+  const [filters, setFilters] = useState<CatalogFilters>(initialFilters)
   const [priceLimits, setPriceLimits] = useState({ min: 0, max: 0 })
   const [selectedPrice, setSelectedPrice] = useState({ min: 0, max: 0 })
   const [appliedPrice, setAppliedPrice] = useState({ min: 0, max: 0 })
@@ -568,7 +601,14 @@ export default function ProductsPage() {
   const [displayedCount, setDisplayedCount] = useState(12)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
-  const ITEMS_PER_PAGE = 12
+  const PAGE_SIZE = 12
+  const ITEMS_PER_PAGE = PAGE_SIZE
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState<{ total: number; next: string | null; previous: string | null }>({
+    total: 0,
+    next: null,
+    previous: null,
+  })
 
   // Scroll to top button state
   const [showScrollTop, setShowScrollTop] = useState(false)
@@ -600,7 +640,40 @@ export default function ProductsPage() {
   // Info blocks visibility
   const [isInfoVisible, setInfoVisible] = useState(false)
 
-  const loadCatalog = async (options: { silent?: boolean } = {}) => {
+  const sortToOrdering: Record<CatalogFilters['sortBy'], string> = {
+    featured: '-created_at',
+    newest: '-created_at',
+    price_asc: 'price',
+    price_desc: '-price',
+  }
+
+  const buildQueryParams = useCallback((type: 'perfume' | 'pigment'): Record<string, string> => {
+    const params: Record<string, string> = {
+      page: page.toString(),
+      page_size: PAGE_SIZE.toString(),
+      ordering: sortToOrdering[filters.sortBy],
+    }
+    if (filters.search.trim()) params.search = filters.search.trim()
+    if (filters.brandId !== 'all') params.brand = String(filters.brandId)
+    if (filters.categoryId !== 'all') params.category = String(filters.categoryId)
+    if (filters.inStockOnly) params.in_stock = 'true'
+    if (filters.onSaleOnly) params.on_sale = 'true'
+    if (filters.featuredOnly) params.featured = 'true'
+    if (appliedPrice.min > 0) params.min_price = String(appliedPrice.min)
+    if (appliedPrice.max > 0) params.max_price = String(appliedPrice.max)
+
+    if (type === 'perfume' && filters.gender !== 'all') {
+      params.gender = filters.gender
+    }
+    if (type === 'pigment' && filters.applicationType !== 'all') {
+      params.application_type = filters.applicationType
+    }
+    return params
+  }, [PAGE_SIZE, appliedPrice.max, appliedPrice.min, filters.applicationType, filters.brandId, filters.categoryId, filters.featuredOnly, filters.gender, filters.inStockOnly, filters.onSaleOnly, filters.search, filters.sortBy, page])
+
+  const isServerPaginated = filters.type !== 'all'
+
+  const loadCatalog = useCallback(async (options: { silent?: boolean } = {}) => {
     setError(null)
     if (options.silent) {
       setIsRefetching(true)
@@ -609,16 +682,42 @@ export default function ProductsPage() {
     }
 
     try {
+      const shouldLoadPerfumes = filters.type === 'all' || filters.type === 'perfume'
+      const shouldLoadPigments = filters.type === 'all' || filters.type === 'pigment'
+
       const [perfumesResponse, pigmentsResponse, brandsResponse, categoriesResponse] = await Promise.all([
-        api.perfumes.getAll(),
-        api.pigments.getAll(),
+        shouldLoadPerfumes ? api.perfumes.getAll(buildQueryParams('perfume')) : Promise.resolve({ data: [] }),
+        shouldLoadPigments ? api.pigments.getAll(buildQueryParams('pigment')) : Promise.resolve({ data: [] }),
         api.brands.getAll(),
         api.categories.getAll(),
       ])
 
-      const perfumes = toCatalogProducts(unwrapList<Perfume>(perfumesResponse.data), 'perfume')
-      const pigments = toCatalogProducts(unwrapList<Pigment>(pigmentsResponse.data), 'pigment')
+      const perfumesPayload = perfumesResponse?.data as any
+      const pigmentsPayload = pigmentsResponse?.data as any
+
+      const perfumes = shouldLoadPerfumes ? toCatalogProducts(unwrapList<Perfume>(perfumesPayload), 'perfume') : []
+      const pigments = shouldLoadPigments ? toCatalogProducts(unwrapList<Pigment>(pigmentsPayload), 'pigment') : []
       const combined = [...perfumes, ...pigments].sort((a, b) => Number(b.featured) - Number(a.featured))
+
+      if (filters.type === 'perfume') {
+        setPagination({
+          total: perfumesPayload?.count ?? perfumes.length,
+          next: perfumesPayload?.next ?? null,
+          previous: perfumesPayload?.previous ?? null,
+        })
+      } else if (filters.type === 'pigment') {
+        setPagination({
+          total: pigmentsPayload?.count ?? pigments.length,
+          next: pigmentsPayload?.next ?? null,
+          previous: pigmentsPayload?.previous ?? null,
+        })
+      } else {
+        setPagination({
+          total: combined.length,
+          next: null,
+          previous: null,
+        })
+      }
 
       setProducts(combined)
       setBrands(unwrapList<Brand>(brandsResponse.data))
@@ -628,15 +727,32 @@ export default function ProductsPage() {
       const minPrice = priceValues.length ? Math.min(...priceValues) : 0
       const maxPrice = priceValues.length ? Math.max(...priceValues) : 0
 
-      setPriceLimits({ min: minPrice, max: maxPrice })
-      setSelectedPrice({
-        min: minPrice,
-        max: maxPrice,
-      })
-      setAppliedPrice({
-        min: minPrice,
-        max: maxPrice,
-      })
+      const limitsChanged = priceLimits.min !== minPrice || priceLimits.max !== maxPrice
+      if (limitsChanged) {
+        setPriceLimits({ min: minPrice, max: maxPrice })
+      }
+
+      const clampValue = (val: number, minV: number, maxV: number) => Math.min(Math.max(val, minV), maxV)
+
+      const initialMin = Math.max(minPrice, priceLimits.min || minPrice)
+      const initialMax = Math.min(maxPrice, priceLimits.max || maxPrice)
+
+      // Если фильтр цены ещё не выбран (по умолчанию 0/0), ставим крайние значения из БД
+      const nextSelected = {
+        min: selectedPrice.min === 0 && selectedPrice.max === 0 ? initialMin : clampValue(selectedPrice.min, minPrice, maxPrice),
+        max: selectedPrice.min === 0 && selectedPrice.max === 0 ? initialMax : clampValue(selectedPrice.max, minPrice, maxPrice),
+      }
+      if (nextSelected.min !== selectedPrice.min || nextSelected.max !== selectedPrice.max) {
+        setSelectedPrice(nextSelected)
+      }
+
+      const nextApplied = {
+        min: appliedPrice.min === 0 && appliedPrice.max === 0 ? initialMin : clampValue(appliedPrice.min, minPrice, maxPrice),
+        max: appliedPrice.min === 0 && appliedPrice.max === 0 ? initialMax : clampValue(appliedPrice.max, minPrice, maxPrice),
+      }
+      if (nextApplied.min !== appliedPrice.min || nextApplied.max !== appliedPrice.max) {
+        setAppliedPrice(nextApplied)
+      }
       setLastUpdated(new Date().toISOString())
     } catch (err) {
       console.error('Ошибка загрузки каталога', err)
@@ -648,12 +764,55 @@ export default function ProductsPage() {
         setIsLoading(false)
       }
     }
-  }
+  }, [filters, appliedPrice, PAGE_SIZE, page, buildQueryParams, setPagination])
+
+  const firstLoadRef = useRef(true)
+  useEffect(() => {
+    if (firstLoadRef.current) {
+      firstLoadRef.current = false
+      loadCatalog()
+    } else {
+      loadCatalog({ silent: true })
+    }
+  }, [loadCatalog])
 
   useEffect(() => {
-    loadCatalog()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    setPage(1)
+  }, [
+    filters.type,
+    filters.brandId,
+    filters.categoryId,
+    filters.gender,
+    filters.applicationType,
+    filters.inStockOnly,
+    filters.onSaleOnly,
+    filters.featuredOnly,
+    filters.search,
+    appliedPrice.min,
+    appliedPrice.max,
+  ])
+
+  // Синхронизируем фильтры с URL параметрами при изменении URL
+  useEffect(() => {
+    const urlSearch = searchParams.get('search')
+    const urlType = searchParams.get('type')
+    const urlGender = searchParams.get('gender')
+    const urlBrandId = searchParams.get('brandId')
+    const urlCategoryId = searchParams.get('categoryId')
+    const urlInStockOnly = searchParams.get('inStockOnly')
+    const urlOnSaleOnly = searchParams.get('onSaleOnly')
+    
+    setFilters(prev => ({
+      ...prev,
+      search: urlSearch || prev.search,
+      type: (urlType === 'perfume' || urlType === 'pigment') ? urlType : prev.type,
+      gender: (urlGender === 'M' || urlGender === 'F' || urlGender === 'U') ? urlGender : prev.gender,
+      brandId: urlBrandId ? (isNaN(Number(urlBrandId)) ? 'all' : Number(urlBrandId)) : prev.brandId,
+      categoryId: urlCategoryId ? (isNaN(Number(urlCategoryId)) ? 'all' : Number(urlCategoryId)) : prev.categoryId,
+      inStockOnly: urlInStockOnly === 'true' ? true : (urlInStockOnly === null ? prev.inStockOnly : false),
+      onSaleOnly: urlOnSaleOnly === 'true' ? true : (urlOnSaleOnly === null ? prev.onSaleOnly : false),
+    }))
+  }, [searchParams])
 
   useEffect(() => {
     if (isFiltersExpanded && searchPanelRef.current) {
@@ -683,8 +842,12 @@ export default function ProductsPage() {
 
   // Reset displayed count when filters change
   useEffect(() => {
+    if (isServerPaginated) {
+      setDisplayedCount(products.length)
+      return
+    }
     setDisplayedCount(ITEMS_PER_PAGE)
-  }, [filters, appliedPrice, ITEMS_PER_PAGE])
+  }, [filters, appliedPrice, ITEMS_PER_PAGE, isServerPaginated, products.length])
 
   const brandMap = useMemo(() => new Map(brands.map((brand) => [brand.id, brand.name])), [brands])
   const categoryMap = useMemo(() => new Map(categories.map((category) => [category.id, category.name])), [categories])
@@ -714,7 +877,10 @@ export default function ProductsPage() {
       }
 
       if (filters.inStockOnly && !product.in_stock) return false
+      if (filters.onSaleOnly && !product.is_on_sale) return false
       if (filters.featuredOnly && !product.featured) return false
+      
+      if (filters.favoritesOnly && !isFavorite(product.id, product.productType)) return false
 
       if (searchTerm) {
         const haystack = [
@@ -739,19 +905,27 @@ export default function ProductsPage() {
       return true
     })
 
+    const priceValue = (p: CatalogProduct) =>
+      (typeof p.final_price === 'number' ? p.final_price : undefined) ??
+      (typeof p.discount_price === 'number' ? p.discount_price : undefined) ??
+      p.price
+
     const sorters: Record<CatalogFilters['sortBy'], (a: CatalogProduct, b: CatalogProduct) => number> = {
       featured: (a, b) => Number(b.featured) - Number(a.featured),
       newest: (a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      price_asc: (a, b) => a.price - b.price,
-      price_desc: (a, b) => b.price - a.price,
+      price_asc: (a, b) => priceValue(a) - priceValue(b),
+      price_desc: (a, b) => priceValue(b) - priceValue(a),
     }
 
     return filtered.sort(sorters[filters.sortBy])
-  }, [products, filters, appliedPrice, priceLimits])
+  }, [products, filters, appliedPrice, priceLimits, isFavorite])
+
+  const totalPages = Math.max(1, Math.ceil((pagination.total || filteredProducts.length || 1) / PAGE_SIZE))
 
   // Intersection Observer for infinite scroll - must be after filteredProducts is computed
   useEffect(() => {
+    if (isServerPaginated) return
     const sentinel = sentinelRef.current
     if (!sentinel) return
 
@@ -784,7 +958,7 @@ export default function ProductsPage() {
         observer.unobserve(sentinel)
       }
     }
-  }, [isLoadingMore, ITEMS_PER_PAGE, filteredProducts.length, displayedCount])
+  }, [isLoadingMore, ITEMS_PER_PAGE, filteredProducts.length, displayedCount, isServerPaginated])
 
   const heroHighlights = useMemo(() => {
     const perfumesCount = products.filter((product) => product.productType === 'perfume').length
@@ -831,7 +1005,9 @@ export default function ProductsPage() {
     if (filters.gender !== 'all') count += 1
     if (filters.applicationType !== 'all') count += 1
     if (filters.inStockOnly) count += 1
+  if (filters.onSaleOnly) count += 1
     if (filters.featuredOnly) count += 1
+    if (filters.favoritesOnly) count += 1
 
     if (priceLimits.max > priceLimits.min) {
       if (appliedPrice.min > priceLimits.min || appliedPrice.max < priceLimits.max) {
@@ -897,11 +1073,27 @@ export default function ProductsPage() {
       })
     }
 
+    if (filters.onSaleOnly) {
+      chips.push({
+        key: 'sale',
+        label: 'Со скидкой',
+        onClear: () => setFilters((prev) => ({ ...prev, onSaleOnly: false })),
+      })
+    }
+
     if (filters.featuredOnly) {
       chips.push({
         key: 'featured',
         label: 'Избранная коллекция',
         onClear: () => setFilters((prev) => ({ ...prev, featuredOnly: false })),
+      })
+    }
+
+    if (filters.favoritesOnly) {
+      chips.push({
+        key: 'favorites',
+        label: 'Мои избранные',
+        onClear: () => setFilters((prev) => ({ ...prev, favoritesOnly: false })),
       })
     }
 
@@ -972,6 +1164,17 @@ export default function ProductsPage() {
           inStockOnly: !prev.inStockOnly,
         })),
     },
+    {
+      id: 'sale',
+      label: 'Акции',
+      description: 'Товары со скидкой',
+      active: filters.onSaleOnly,
+      onToggle: () =>
+        setFilters((prev) => ({
+          ...prev,
+          onSaleOnly: !prev.onSaleOnly,
+        })),
+    },
   ]
 
   if (isLoading) {
@@ -1002,30 +1205,39 @@ export default function ProductsPage() {
   return (
     <div className="min-h-screen py-8 md:py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-        <div className="flex justify-end">
+        <div>
           <button
             type="button"
             onClick={() => setInfoVisible(!isInfoVisible)}
+            className="flex w-full items-center justify-between group py-4 text-left transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className={clsx(
+                'h-px w-8 bg-slate-300 transition-all group-hover:w-12 group-hover:bg-emerald-500 dark:bg-slate-600 dark:group-hover:bg-emerald-400',
+                isInfoVisible ? 'w-12 bg-emerald-500 dark:bg-emerald-400' : ''
+              )} />
+              <span className="text-lg font-semibold uppercase tracking-widest text-slate-500 transition-colors group-hover:text-emerald-700 dark:text-slate-400 dark:group-hover:text-emerald-300">
+                О проекте и рекомендации
+              </span>
+            </div>
+            <div className={clsx(
+              'rounded-full border border-slate-200 p-2 transition-all group-hover:border-emerald-200 group-hover:bg-emerald-50 dark:border-white/10 dark:group-hover:border-emerald-500/30 dark:group-hover:bg-emerald-500/10',
+              isInfoVisible ? 'rotate-180 bg-slate-50 dark:bg-white/5' : ''
+            )}>
+              <ChevronDown className={clsx(
+                'h-5 w-5 text-slate-400 transition-colors group-hover:text-emerald-600 dark:text-slate-500 dark:group-hover:text-emerald-400',
+                isInfoVisible ? 'text-emerald-600 dark:text-emerald-400' : ''
+              )} />
+            </div>
+          </button>
+
+          <div
             className={clsx(
-              'flex items-center gap-3 text-sm font-semibold transition-all duration-200 px-6 py-3 rounded-2xl border shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95',
-              isInfoVisible
-                ? 'bg-primary text-white border-primary shadow-primary/30'
-                : 'bg-card border-border/60 text-foreground hover:border-primary/70 hover:bg-primary/5'
+              'transition-all duration-500 ease-in-out overflow-hidden',
+              isInfoVisible ? 'opacity-100 max-h-[2000px] mt-6' : 'max-h-0 opacity-0'
             )}
           >
-            <Info className="w-4 h-4 flex-shrink-0" />
-            {isInfoVisible ? 'Скрыть информацию' : 'О проекте и рекомендации'}
-            <ChevronDown
-              className={clsx(
-                'w-4 h-4 transition-transform duration-200 flex-shrink-0',
-                isInfoVisible && 'rotate-180'
-              )}
-            />
-          </button>
-        </div>
-
-        {isInfoVisible && (
-          <section className="grid gap-4 md:grid-cols-2">
+            <section className="grid gap-4 md:grid-cols-2">
             <div className="bg-card/80 border border-border/60 dark:border-border/30 rounded-2xl p-5 relative overflow-hidden animate-in fade-in slide-in-from-left-4 duration-500 delay-100">
               <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-br from-primary/20 to-transparent blur-3xl pointer-events-none" />
               <p className="text-xs uppercase tracking-widest text-foreground/60">Витрина NP Academy</p>
@@ -1064,8 +1276,13 @@ export default function ProductsPage() {
 
             <div className="bg-gradient-to-br from-primary/20 via-primary/5 to-transparent border border-primary/20 rounded-2xl p-5 flex flex-col justify-between animate-in fade-in slide-in-from-right-4 duration-500 delay-200">
               <div>
-                <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">
-                  <Sparkles className="w-3 h-3" />
+                <div className={clsx(
+                  'inline-flex items-center gap-2 px-2 py-0.5 rounded-full text-xs',
+                  theme === 'dark' 
+                    ? 'bg-white/10 text-white' 
+                    : 'bg-primary/10 text-primary'
+                )}>
+                  <Sparkles className={clsx('w-3 h-3', theme === 'dark' ? 'text-white' : 'text-primary')} />
                   Режим подбора
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mt-3">
@@ -1077,15 +1294,15 @@ export default function ProductsPage() {
               </div>
               <div className="mt-4 space-y-2 text-xs text-foreground/70">
                 <div className="flex items-center gap-2">
-                  <Stars className="w-3 h-3 text-primary" />
+                  <Stars className={clsx('w-3 h-3', theme === 'dark' ? 'text-white' : 'text-primary')} />
                   Курируем новое поступление каждую неделю
                 </div>
                 <div className="flex items-center gap-2">
-                  <Filter className="w-3 h-3 text-primary" />
+                  <Filter className={clsx('w-3 h-3', theme === 'dark' ? 'text-white' : 'text-primary')} />
                   Фильтры работают без перезагрузки страницы
                 </div>
                 <div className="flex items-center gap-2">
-                  <SlidersHorizontal className="w-3 h-3 text-primary" />
+                  <SlidersHorizontal className={clsx('w-3 h-3', theme === 'dark' ? 'text-white' : 'text-primary')} />
                   Сохраняем выбранные параметры
                 </div>
                 {lastUpdated && (
@@ -1096,7 +1313,8 @@ export default function ProductsPage() {
               </div>
             </div>
           </section>
-        )}
+          </div>
+        </div>
 
         <section className="space-y-6">
           <div
@@ -1203,7 +1421,8 @@ export default function ProductsPage() {
 
             <div className="flex flex-wrap gap-3 items-center justify-between">
               <p className="text-sm text-foreground/60">
-                Найдено {filteredProducts.length} из {products.length}
+                Найдено {isServerPaginated ? pagination.total : filteredProducts.length}{' '}
+                {isServerPaginated ? `(страница ${page} из ${totalPages})` : `из ${products.length}`}
               </p>
             </div>
 
@@ -1253,7 +1472,7 @@ export default function ProductsPage() {
                   )}
                   <SlidersHorizontal
                     className={clsx(
-                      'w-5 h-5 text-primary transition-transform duration-300',
+                      'w-5 h-5 text-white transition-transform duration-300',
                       isFiltersExpanded && 'rotate-90'
                     )}
                   />
@@ -1263,7 +1482,7 @@ export default function ProductsPage() {
           </div>
 
           {isFiltersExpanded && (
-            <div className="bg-card/90 border border-border/40 rounded-2xl p-4 md:p-6 shadow-lg shadow-black/10 space-y-6">
+            <>
               <FiltersPanel
                 filters={filters}
                 setFilters={setFilters}
@@ -1277,7 +1496,7 @@ export default function ProductsPage() {
                 activeFiltersCount={activeFiltersCount}
                 resetFilters={resetFilters}
               />
-              <div className="flex flex-wrap justify-end gap-3">
+              <div className="flex flex-wrap justify-end gap-3 mt-4">
                 <Button
                   type="button"
                   variant="glass"
@@ -1287,7 +1506,7 @@ export default function ProductsPage() {
                   Скрыть
                 </Button>
               </div>
-            </div>
+            </>
           )}
 
           {filteredProducts.length === 0 ? (
@@ -1316,8 +1535,37 @@ export default function ProductsPage() {
                 ))}
               </div>
 
+              {isServerPaginated && totalPages > 1 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-6">
+                  <p className="text-sm text-foreground/60">
+                    Показано {filteredProducts.length} из {pagination.total}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="glass"
+                      disabled={page <= 1 || !pagination.previous}
+                      onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                    >
+                      Назад
+                    </Button>
+                    <span className="text-sm text-foreground/70">
+                      {page} / {totalPages}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      disabled={!pagination.next && page >= totalPages}
+                      onClick={() => setPage((prev) => prev + 1)}
+                    >
+                      Далее
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Sentinel element for infinite scroll */}
-              {displayedCount < filteredProducts.length && (
+              {!isServerPaginated && displayedCount < filteredProducts.length && (
                 <div ref={sentinelRef} className="py-8 flex justify-center">
                   {isLoadingMore && (
                     <div className="flex flex-col items-center gap-3">
@@ -1329,7 +1577,9 @@ export default function ProductsPage() {
               )}
 
               {/* Show completion message when all products are displayed */}
-              {displayedCount >= filteredProducts.length && filteredProducts.length > ITEMS_PER_PAGE && (
+              {!isServerPaginated &&
+                displayedCount >= filteredProducts.length &&
+                filteredProducts.length > ITEMS_PER_PAGE && (
                 <div className="py-8 text-center">
                   <p className="text-sm text-foreground/60">
                     Показаны все {filteredProducts.length} товаров

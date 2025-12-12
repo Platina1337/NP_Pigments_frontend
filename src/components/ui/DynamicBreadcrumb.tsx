@@ -75,10 +75,6 @@ export function DynamicBreadcrumb({ product }: DynamicBreadcrumbProps) {
           // Пришли со страницы каталога товаров
           console.log('DynamicBreadcrumb: detected products page');
           items.push({ label: 'Каталог', href: '/products' });
-        } else if (referrer.includes('/search')) {
-          // Пришли со страницы поиска
-          console.log('DynamicBreadcrumb: detected search page');
-          items.push({ label: 'Поиск', href: '/search' });
         } else if (referrer.includes('/products?')) {
           // Пришли с фильтрованной страницы продуктов
           console.log('DynamicBreadcrumb: detected filtered products page');

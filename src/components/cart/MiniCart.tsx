@@ -2,17 +2,17 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ShoppingBag, ArrowRight } from 'lucide-react';
+import { ShoppingBag, ArrowRight, Minus, Plus, Trash2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { formatPrice } from '@/lib/api';
 
 export const MiniCart: React.FC = () => {
-  const { state } = useCart();
+  const { state, updateQuantity, removeItem } = useCart();
   const { items, total, itemCount } = state;
 
   if (itemCount === 0) {
     return (
-      <div className="w-80 p-6">
+      <div className="p-6">
         <div className="text-center py-8">
           <ShoppingBag className="w-10 h-10 text-foreground/30 mx-auto mb-4" />
           <p className="text-foreground/60 text-sm mb-4">Ваша корзина пуста</p>
@@ -27,7 +27,7 @@ export const MiniCart: React.FC = () => {
   }
 
   return (
-    <div className="w-80 max-h-96 overflow-hidden">
+    <div className="max-h-96 overflow-hidden">
       {/* Заголовок */}
       <div className="px-4 py-3 bg-primary/5 border-b border-border">
         <div className="flex items-center justify-between">
@@ -41,35 +41,64 @@ export const MiniCart: React.FC = () => {
       </div>
 
       {/* Содержимое корзины */}
-      <div className="max-h-48 overflow-y-auto">
+      <div className="max-h-64 overflow-y-auto">
         <div className="divide-y divide-border">
-          {items.slice(0, 3).map((item) => (
-            <div key={item.id} className="px-4 py-3 hover:bg-primary/5 transition-colors duration-150">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <ShoppingBag className="w-4 h-4 text-primary/60" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {item.perfume.name}
-                  </p>
-                  <p className="text-xs text-foreground/60">
-                    {item.quantity} × {formatPrice(parseFloat(item.perfume.price))}
-                  </p>
-                </div>
-                <div className="text-sm font-semibold text-foreground">
-                  {formatPrice(parseFloat(item.perfume.price) * item.quantity)}
+          {items.map((item) => {
+            const unitPrice = item.perfume.final_price ?? parseFloat(item.perfume.price);
+            const originalPrice = parseFloat(item.perfume.price);
+            const hasDiscount = unitPrice < originalPrice;
+            return (
+              <div key={item.id} className="px-4 py-3 hover:bg-primary/5 transition-colors duration-150">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <ShoppingBag className="w-4 h-4 text-primary/60" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {item.perfume.name}
+                    </p>
+                    <p className="text-xs text-foreground/60 flex items-center gap-1">
+                      {formatPrice(unitPrice)}
+                      {hasDiscount && (
+                        <span className="ml-1.5 line-through text-foreground/40">
+                          {formatPrice(originalPrice)}
+                        </span>
+                      )}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <button
+                        aria-label="Уменьшить количество"
+                        className="h-7 w-7 rounded-md border border-border flex items-center justify-center hover:bg-primary/10 transition-colors"
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <span className="min-w-[28px] text-center text-sm font-semibold">
+                        {item.quantity}
+                      </span>
+                      <button
+                        aria-label="Увеличить количество"
+                        className="h-7 w-7 rounded-md border border-border flex items-center justify-center hover:bg-primary/10 transition-colors"
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                      <button
+                        aria-label="Удалить товар"
+                        className="ml-2 h-7 w-7 rounded-md border border-border flex items-center justify-center hover:bg-red-50 text-red-500 transition-colors"
+                        onClick={() => removeItem(item.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-sm font-semibold text-foreground">
+                    {formatPrice(unitPrice * item.quantity)}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-          {items.length > 3 && (
-            <div className="px-4 py-2 text-center">
-              <span className="text-xs text-foreground/50">
-                И ещё {items.length - 3} товар{items.length - 3 === 1 ? '' : items.length - 3 < 5 ? 'а' : 'ов'}
-              </span>
-            </div>
-          )}
+            );
+          })}
         </div>
       </div>
 

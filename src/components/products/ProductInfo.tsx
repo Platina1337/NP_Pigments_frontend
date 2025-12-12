@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Star, ShoppingCart, Heart, Minus, Plus, Truck, Shield, RotateCcw } from 'lucide-react';
-import { Perfume, Pigment } from '@/types/api';
-import { formatPrice, formatVolume, formatGender } from '@/lib/api';
+import { Perfume, Pigment, VolumeOption, WeightOption } from '@/types/api';
+import { formatPrice, formatVolume, formatGender, formatWeight } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { useCart } from '@/context/CartContext';
 import { normalizeProductForCart } from '@/lib/cart-normalizer';
+import { getPriceInfo } from '@/lib/product-pricing';
+import { VolumeSelector, WeightSelector } from './VolumeSelector';
 
 type Product = Perfume | Pigment;
 
@@ -19,11 +21,57 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({ product }) => {
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
 
+  // Volume/Weight selection state
+  const [selectedVolumeOptionId, setSelectedVolumeOptionId] = useState<number | undefined>(undefined);
+  const [selectedWeightOptionId, setSelectedWeightOptionId] = useState<number | undefined>(undefined);
+
   const isPerfume = 'gender' in product && 'volume_ml' in product;
   const isPigment = 'color_type' in product && 'weight_gr' in product;
 
+  // Get selected option for pricing
+  const selectedVolumeOption = useMemo(() => {
+    if (!isPerfume || !product.volume_options || product.volume_options.length === 0) return null;
+    return product.volume_options.find(o => o.id === selectedVolumeOptionId)
+      || product.volume_options.find(o => o.is_default)
+      || product.volume_options[0];
+  }, [isPerfume, product, selectedVolumeOptionId]);
+
+  const selectedWeightOption = useMemo(() => {
+    if (!isPigment || !('weight_options' in product) || !product.weight_options || product.weight_options.length === 0) return null;
+    return product.weight_options.find(o => o.id === selectedWeightOptionId)
+      || product.weight_options.find(o => o.is_default)
+      || product.weight_options[0];
+  }, [isPigment, product, selectedWeightOptionId]);
+
+  // Use selected option's price if available, otherwise fall back to product price
+  const { currentPrice, originalPrice, hasDiscount } = useMemo(() => {
+    if (selectedVolumeOption) {
+      return {
+        currentPrice: selectedVolumeOption.final_price,
+        originalPrice: selectedVolumeOption.is_on_sale ? selectedVolumeOption.price : selectedVolumeOption.final_price,
+        hasDiscount: selectedVolumeOption.is_on_sale || false,
+      };
+    }
+    if (selectedWeightOption) {
+      return {
+        currentPrice: selectedWeightOption.final_price,
+        originalPrice: selectedWeightOption.is_on_sale ? selectedWeightOption.price : selectedWeightOption.final_price,
+        hasDiscount: selectedWeightOption.is_on_sale || false,
+      };
+    }
+    return getPriceInfo(product);
+  }, [product, selectedVolumeOption, selectedWeightOption]);
+
+  // Stock quantity based on selected option
+  const stockQuantity = selectedVolumeOption?.stock_quantity
+    ?? selectedWeightOption?.stock_quantity
+    ?? product.stock_quantity;
+  const inStock = selectedVolumeOption?.in_stock
+    ?? selectedWeightOption?.in_stock
+    ?? product.in_stock;
+
   const handleQuantityChange = (newQuantity: number) => {
-    if (newQuantity >= 1 && newQuantity <= product.stock_quantity) {
+    if (newQuantity >= 1 && newQuantity <= stockQuantity) {
       setQuantity(newQuantity);
     }
   };
@@ -31,10 +79,12 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({ product }) => {
   const handleAddToCart = () => {
     const normalized = normalizeProductForCart(product);
     const productType: 'perfume' | 'pigment' = isPerfume ? 'perfume' : 'pigment';
+    // TODO: Pass selectedVolumeOptionId/selectedWeightOptionId to cart when cart is updated to support it
     for (let i = 0; i < quantity; i++) {
       addItem(normalized, productType);
     }
   };
+
 
   const averageRating = 4.8; // Mock rating - in real app this would come from API
   const reviewCount = 124; // Mock review count
@@ -49,24 +99,26 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({ product }) => {
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight mb-4">
           {product.name}
         </h1>
+        {(product as any).sku && (
+          <p className="text-sm text-gray-500 mb-2">Артикул: {(product as any).sku}</p>
+        )}
 
         {/* Category and Type Tags */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
           <span className="text-sm text-gray-600">{product.category.name}</span>
           <span className="text-sm text-gray-400">•</span>
           {isPerfume ? (
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-              product.gender === 'M' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${product.gender === 'M' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
               product.gender === 'F' ? 'bg-pink-50 text-pink-700 border border-pink-200' :
-              'bg-gray-50 text-gray-700 border border-gray-200'
-            }`}>
+                'bg-gray-50 text-gray-700 border border-gray-200'
+              }`}>
               {formatGender(product.gender)}
             </span>
           ) : isPigment ? (
             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-50 text-purple-700 border border-purple-200">
               {product.color_type === 'powder' ? 'Порошок' :
-               product.color_type === 'liquid' ? 'Жидкий' :
-               product.color_type === 'paste' ? 'Паста' : product.color_type}
+                product.color_type === 'liquid' ? 'Жидкий' :
+                  product.color_type === 'paste' ? 'Паста' : product.color_type}
             </span>
           ) : null}
         </div>
@@ -79,11 +131,10 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({ product }) => {
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
-                className={`w-5 h-5 ${
-                  i < Math.floor(averageRating)
-                    ? 'text-yellow-400 fill-current'
-                    : 'text-gray-300'
-                }`}
+                className={`w-5 h-5 ${i < Math.floor(averageRating)
+                  ? 'text-yellow-400 fill-current'
+                  : 'text-gray-300'
+                  }`}
               />
             ))}
           </div>
@@ -100,31 +151,63 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({ product }) => {
       <div className="bg-gray-50 rounded-lg p-6">
         <div className="flex items-baseline justify-between mb-4">
           <div>
-            <span className="text-4xl font-bold text-primary">
-              {formatPrice(typeof product.price === 'string' ? parseFloat(product.price) : product.price)}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-4xl font-bold text-primary">
+                {formatPrice(currentPrice)}
+              </span>
+              {hasDiscount && (
+                <span className="text-lg line-through text-gray-400">
+                  {formatPrice(originalPrice)}
+                </span>
+              )}
+            </div>
             <p className="text-sm text-gray-600 mt-1">
-              {isPerfume ? `Объем: ${formatVolume(product.volume_ml)}` :
-               isPigment ? `Вес: ${product.weight_gr} г` :
-               'Спецификация недоступна'}
+              {isPerfume
+                ? (selectedVolumeOption
+                  ? `Выбран объем: ${formatVolume(selectedVolumeOption.volume_ml)}`
+                  : `Объем: ${formatVolume(product.volume_ml)}`)
+                : isPigment
+                  ? (selectedWeightOption
+                    ? `Выбран вес: ${formatWeight(selectedWeightOption.weight_gr)}`
+                    : `Вес: ${product.weight_gr} г`)
+                  : 'Спецификация недоступна'}
             </p>
           </div>
 
-          {product.in_stock && (
+          {inStock && (
             <div className="text-right">
               <div className="flex items-center text-green-600 mb-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
                 <span className="text-sm font-medium">В наличии</span>
               </div>
               <p className="text-lg font-semibold text-gray-900">
-                {product.stock_quantity} шт.
+                {stockQuantity} шт.
               </p>
             </div>
           )}
         </div>
 
+        {/* Volume/Weight Selector */}
+        {isPerfume && product.volume_options && product.volume_options.length > 1 && (
+          <VolumeSelector
+            options={product.volume_options}
+            selectedId={selectedVolumeOptionId ?? selectedVolumeOption?.id}
+            onSelect={(option) => setSelectedVolumeOptionId(option.id)}
+            className="mb-4"
+          />
+        )}
+
+        {isPigment && 'weight_options' in product && product.weight_options && product.weight_options.length > 1 && (
+          <WeightSelector
+            options={product.weight_options}
+            selectedId={selectedWeightOptionId ?? selectedWeightOption?.id}
+            onSelect={(option) => setSelectedWeightOptionId(option.id)}
+            className="mb-4"
+          />
+        )}
+
         {/* Quantity Selector */}
-        {product.in_stock && (
+        {inStock && (
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <span className="text-sm font-medium text-gray-900">Количество:</span>
@@ -141,7 +224,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({ product }) => {
                 </span>
                 <button
                   onClick={() => handleQuantityChange(quantity + 1)}
-                  disabled={quantity >= product.stock_quantity}
+                  disabled={quantity >= stockQuantity}
                   className="p-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus className="w-4 h-4" />
@@ -150,7 +233,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({ product }) => {
             </div>
 
             <div className="text-sm text-gray-600">
-              Итого: {formatPrice(parseFloat(product.price) * quantity)}
+              Итого: {formatPrice(currentPrice * quantity)}
             </div>
           </div>
         )}
@@ -160,12 +243,12 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({ product }) => {
       <div className="space-y-3">
         <Button
           onClick={handleAddToCart}
-          disabled={!product.in_stock}
+          disabled={!inStock}
           className="w-full"
           size="lg"
         >
           <ShoppingCart className="w-5 h-5 mr-2" />
-          {product.in_stock ? `Добавить в корзину (${quantity})` : 'Нет в наличии'}
+          {inStock ? `Добавить в корзину (${quantity})` : 'Нет в наличии'}
         </Button>
 
         <Button

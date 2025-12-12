@@ -247,12 +247,12 @@ body {
    ЕДИНАЯ СИСТЕМА КНОПОК NP ACADEMY
    ============================================ */
 
-/* Primary Button - Темно-бирюзовая */
+/* Primary Button - Темно-бирюзовая (как блок "Расширенные фильтры") */
 .btn-primary {
-  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%) !important;
+  background: rgba(59, 113, 113, 0.9) !important;
   color: var(--brand-white) !important;
-  border: 2px solid transparent !important;
-  border-radius: var(--radius-sm) !important;
+  border: 1px solid rgba(59, 113, 113, 0.6) !important;
+  border-radius: var(--radius-lg) !important;
   padding: 12px 32px !important;
   font-weight: 600 !important;
   font-size: 16px !important;
@@ -261,12 +261,14 @@ body {
   cursor: pointer !important;
   text-decoration: none;
   display: inline-block;
+  box-shadow: 0 4px 6px -1px rgba(59, 113, 113, 0.4) !important;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px) !important;
-  box-shadow: var(--shadow-gold) !important;
-  border-color: var(--brand-accent-gold) !important;
+  box-shadow: 0 10px 15px -3px rgba(59, 113, 113, 0.4) !important;
+  background: rgba(59, 113, 113, 1) !important;
+  border-color: rgba(59, 113, 113, 0.8) !important;
 }
 
 .btn-primary:disabled {
@@ -277,9 +279,9 @@ body {
 
 /* Secondary Button - Золотая (премиум) */
 .btn-secondary {
-  background: linear-gradient(135deg, var(--brand-accent-gold) 0%, var(--brand-accent-gold-dark) 100%) !important;
+  background: transparent !important;
   color: var(--brand-primary) !important;
-  border: none !important;
+  border: 2px solid var(--brand-primary) !important;
   border-radius: var(--radius-sm) !important;
   padding: 12px 32px !important;
   font-weight: 600 !important;
@@ -292,14 +294,16 @@ body {
 }
 
 .btn-secondary:hover {
-  transform: translateY(-2px) scale(1.02) !important;
-  box-shadow: 0 0 20px rgba(212, 163, 115, 0.5) !important;
+  background: var(--brand-primary-pale) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: none !important;
 }
 
 .btn-secondary:disabled {
   opacity: 0.5 !important;
   cursor: not-allowed !important;
   transform: none !important;
+  background: transparent !important;
 }
 
 /* Outline Button - Контурная */
@@ -834,6 +838,77 @@ header {
 }
 
 /* ============================================
+   ИСПРАВЛЕНИЯ ДЛЯ РЕГИСТРАЦИОННОЙ СТРАНИЦЫ
+   ============================================ */
+
+/* Кнопки с иконками - правильное выравнивание */
+.btn-with-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+}
+
+.btn-with-icon svg {
+  flex-shrink: 0 !important;
+}
+
+/* Переключатель методов регистрации */
+.method-switcher {
+  position: relative;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.method-switcher-button {
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.method-switcher-button:hover {
+  transform: translateY(-1px);
+}
+
+.method-switcher-indicator {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-dark));
+  border-radius: 16px;
+  box-shadow:
+    0 4px 20px rgba(59, 113, 113, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 2px 8px rgba(59, 113, 113, 0.3);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.method-switcher-button.active {
+  color: white;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  z-index: 20;
+}
+
+.method-switcher-button:not(.active) {
+  color: var(--brand-text);
+  opacity: 0.7;
+  transition: all 0.3s ease;
+}
+
+.method-switcher-button:not(.active):hover {
+  opacity: 1;
+  color: var(--brand-primary);
+}
+
+/* ============================================
    ДОСТУПНОСТЬ
    ============================================ */
 
@@ -897,4 +972,202 @@ header {
   --animate-fade-in: fadeIn 0.3s ease-out;
   --animate-slide-up: slideUp 0.4s ease-out;
   --animate-float: float 3s ease-in-out infinite;
+  --animate-confetti: confetti 1.5s ease-out forwards;
+  --animate-spin-slow: spin 3s linear infinite;
+}
+
+/* ============================================
+   MAGIC LINK АНИМАЦИИ
+   ============================================ */
+
+@keyframes confetti {
+  0% {
+    transform: translateY(0) rotateZ(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-200px) rotateZ(720deg);
+    opacity: 0;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-confetti {
+  animation: confetti 1.5s ease-out forwards;
+}
+
+.animate-spin-slow {
+  animation: spin 3s linear infinite;
+}
+
+/* ============================================
+   ДОПОЛНИТЕЛЬНЫЕ АНИМАЦИИ ДЛЯ ПРОМО СЕКЦИИ
+   ============================================ */
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Горизонтальная прокрутка без скроллбара */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
+/* Радиальный градиент */
+.bg-gradient-radial {
+  background: radial-gradient(circle, var(--tw-gradient-stops));
+}
+
+/* Задержки анимации */
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+
+.animation-delay-700 {
+  animation-delay: 700ms;
+}
+
+/* ============================================
+   SWIPER КАСТОМНЫЕ СТИЛИ ДЛЯ ПРОМО СЕКЦИИ
+   ============================================ */
+
+.swiper-button-prev-promo,
+.swiper-button-next-promo {
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.3s ease;
+}
+
+.swiper-button-next-promo {
+  transform: translateX(10px);
+}
+
+.swiper:hover .swiper-button-prev-promo,
+.swiper:hover .swiper-button-next-promo {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.swiper-button-prev-promo::after,
+.swiper-button-next-promo::after {
+  display: none;
+}
+
+.swiper-pagination-promo .swiper-pagination-bullet {
+  background: var(--color-border);
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+
+.swiper-pagination-promo .swiper-pagination-bullet-active {
+  background: var(--color-primary);
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+.swiper-pagination-promo .swiper-pagination-bullet-active-main {
+  transform: scale(1.4);
+}
+
+/* ============================================
+   BREADCRUMB СТИЛИ ДЛЯ ТЕМНОЙ ТЕМЫ
+   ============================================ */
+
+/* Светлая тема */
+.breadcrumb-nav {
+  color: #4b5563 !important; /* text-gray-600 */
+}
+
+.breadcrumb-link {
+  color: #374151 !important; /* text-gray-700 */
+}
+
+.breadcrumb-link:hover {
+  color: #111827 !important; /* text-gray-900 */
+}
+
+.breadcrumb-icon {
+  color: #4b5563 !important; /* text-gray-600 */
+}
+
+.breadcrumb-separator {
+  color: #9ca3af !important; /* text-gray-400 */
+}
+
+.breadcrumb-current {
+  color: #111827 !important; /* text-gray-900 */
+}
+
+/* Темная тема */
+.dark .breadcrumb-nav {
+  color: #e5e7eb !important; /* text-gray-200 */
+}
+
+.dark .breadcrumb-link {
+  color: #e5e7eb !important; /* text-gray-200 */
+}
+
+.dark .breadcrumb-link:hover {
+  color: #ffffff !important; /* text-white */
+}
+
+.dark .breadcrumb-icon {
+  color: #d1d5db !important; /* text-gray-300 */
+}
+
+.dark .breadcrumb-separator {
+  color: #9ca3af !important; /* text-gray-400 */
+}
+
+.dark .breadcrumb-current {
+  color: #ffffff !important; /* text-white */
+}
+
+/* ============================================
+   PRODUCT CARD СТИЛИ ДЛЯ ТЕМНОЙ ТЕМЫ
+   ============================================ */
+
+/* Светлая тема */
+.product-card-title {
+  color: #111827 !important; /* text-gray-900 */
+}
+
+.product-card-volume {
+  color: #4b5563 !important; /* text-gray-600 */
+}
+
+.product-card-category {
+  color: #4b5563 !important; /* text-gray-600 */
+}
+
+/* Темная тема */
+.dark .product-card-title {
+  color: #ffffff !important; /* text-white */
+}
+
+.dark .product-card-volume {
+  color: #d1d5db !important; /* text-gray-300 */
+}
+
+.dark .product-card-category {
+  color: #d1d5db !important; /* text-gray-300 */
 }

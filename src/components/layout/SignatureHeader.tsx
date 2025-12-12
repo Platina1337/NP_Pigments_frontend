@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Menu,
   X,
@@ -21,6 +22,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { MiniCart } from '@/components/cart/MiniCart';
 import { ThemeToggle } from '@/components/ui';
+import { api } from '@/lib/api';
 
 const navLinks = [
   { label: 'Главная', href: '/' },
@@ -29,7 +31,7 @@ const navLinks = [
   { label: 'Академия', href: '/profile' },
 ];
 
-const quickSearches = [
+const defaultQuickSearches = [
   'ароматы дня',
   'унисекс',
   'travel-наборы',
@@ -37,7 +39,7 @@ const quickSearches = [
 ];
 
 const userShortcuts = [
-  { label: 'Избранное', href: '/favorites', icon: Heart },
+  { label: 'Избранное', href: '/profile?tab=favorites', icon: Heart },
   { label: 'Мои заказы', href: '/orders', icon: Package },
 ];
 
@@ -47,11 +49,68 @@ export const SignatureHeader: React.FC = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [cartMenuOpen, setCartMenuOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>(defaultQuickSearches);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [userMenuVisible, setUserMenuVisible] = useState(false);
+  const [cartMenuVisible, setCartMenuVisible] = useState(false);
 
   const { state } = useCart();
   const { isAuthenticated, user, logout } = useAuth();
   const { theme } = useTheme();
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      try {
+        // Получаем рекомендуемые товары (featured)
+        const [perfumesRes, pigmentsRes] = await Promise.all([
+          api.perfumes.getFeatured(),
+          api.pigments.getFeatured(),
+        ]);
+
+        // Извлекаем данные
+        const perfumes = Array.isArray(perfumesRes.data) ? perfumesRes.data : [];
+        const pigments = Array.isArray(pigmentsRes.data) ? pigmentsRes.data : [];
+
+        // Собираем список товаров
+        let items = [...perfumes, ...pigments];
+
+        // Если мало рекомендуемых, загружаем обычные (limit=5)
+        if (items.length < 4) {
+          const [allPerfumesRes, allPigmentsRes] = await Promise.all([
+            api.perfumes.getAll({ page_size: '5' }),
+            api.pigments.getAll({ page_size: '5' }),
+          ]);
+          
+          // Обработка ответов с пагинацией
+          const morePerfumes = allPerfumesRes.data && typeof allPerfumesRes.data === 'object' && 'results' in (allPerfumesRes.data as any)
+            ? (allPerfumesRes.data as any).results 
+            : (Array.isArray(allPerfumesRes.data) ? allPerfumesRes.data : []);
+            
+          const morePigments = allPigmentsRes.data && typeof allPigmentsRes.data === 'object' && 'results' in (allPigmentsRes.data as any)
+            ? (allPigmentsRes.data as any).results
+            : (Array.isArray(allPigmentsRes.data) ? allPigmentsRes.data : []);
+
+          items = [...items, ...morePerfumes, ...morePigments];
+        }
+
+        // Извлекаем уникальные названия, перемешиваем и берем первые 5
+        const names = Array.from(new Set(items.map((item: any) => item.name)))
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 5);
+
+        if (names.length > 0) {
+          setSuggestions(names);
+        }
+      } catch (error) {
+        console.error('Failed to fetch search suggestions:', error);
+        // Fallback to default searches is already set in state initialization
+      }
+    };
+
+    fetchSuggestions();
+  }, []);
 
   const baseRowRef = useRef<HTMLDivElement>(null);
   const menuPanelRef = useRef<HTMLDivElement>(null);
@@ -118,7 +177,12 @@ export const SignatureHeader: React.FC = () => {
 
   useEffect(() => {
     if (isExpanded) {
+      setMenuVisible(true);
       const timeout = setTimeout(() => panelSearchRef.current?.focus(), 150);
+      return () => clearTimeout(timeout);
+    } else {
+      // Запускаем анимацию закрытия
+      const timeout = setTimeout(() => setMenuVisible(false), 300);
       return () => clearTimeout(timeout);
     }
   }, [isExpanded]);
@@ -129,6 +193,24 @@ export const SignatureHeader: React.FC = () => {
       return () => clearTimeout(timeout);
     }
   }, [isSearchOverlayOpen]);
+
+  useEffect(() => {
+    if (userMenuOpen) {
+      setUserMenuVisible(true);
+    } else {
+      const timeout = setTimeout(() => setUserMenuVisible(false), 300);
+      return () => clearTimeout(timeout);
+    }
+  }, [userMenuOpen]);
+
+  useEffect(() => {
+    if (cartMenuOpen) {
+      setCartMenuVisible(true);
+    } else {
+      const timeout = setTimeout(() => setCartMenuVisible(false), 300);
+      return () => clearTimeout(timeout);
+    }
+  }, [cartMenuOpen]);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
@@ -153,12 +235,12 @@ export const SignatureHeader: React.FC = () => {
     event.preventDefault();
     const trimmed = searchValue.trim();
     if (!trimmed) return;
-    window.location.href = `/search?q=${encodeURIComponent(trimmed)}`;
+    router.push(`/products?search=${encodeURIComponent(trimmed)}`);
     setIsExpanded(false);
     setIsSearchOverlayOpen(false);
   };
 
-  const userInitials = (user?.first_name || user?.username || 'NP')
+  const userInitials = (user?.profile?.first_name || user?.username || 'NP')
     .slice(0, 2)
     .toUpperCase();
 
@@ -171,7 +253,15 @@ export const SignatureHeader: React.FC = () => {
         >
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsExpanded((prev) => !prev)}
+              onClick={() => {
+                setIsExpanded((prev) => !prev);
+                // Закрываем другие меню при открытии главного
+                if (!isExpanded) {
+                  setUserMenuOpen(false);
+                  setCartMenuOpen(false);
+                  setIsSearchOverlayOpen(false);
+                }
+              }}
               aria-label="Переключить меню"
               className={`p-3 rounded-2xl transition-colors ${palette.iconBtn}`}
             >
@@ -197,7 +287,10 @@ export const SignatureHeader: React.FC = () => {
 
           <div className="flex items-center gap-2 sm:gap-3">
             <button
-              onClick={() => setIsSearchOverlayOpen(true)}
+              onClick={() => {
+                setIsSearchOverlayOpen(true);
+                setIsExpanded(false); // Закрываем главное меню при открытии поиска
+              }}
               aria-label="Поиск"
               className={`p-3 rounded-2xl transition-colors ${palette.iconBtn}`}
             >
@@ -209,11 +302,14 @@ export const SignatureHeader: React.FC = () => {
             </div>
 
             <div ref={userMenuRef} className="relative">
-              <button
-                onClick={() => setUserMenuOpen((prev) => !prev)}
-                aria-label="Профиль"
-                className={`p-3 rounded-2xl flex items-center justify-center min-w-[48px] transition-colors ${palette.iconBtn}`}
-              >
+            <button
+              onClick={() => {
+                setUserMenuOpen((prev) => !prev);
+                setIsExpanded(false); // Закрываем главное меню при открытии профиля
+              }}
+              aria-label="Профиль"
+              className={`p-3 rounded-2xl flex items-center justify-center min-w-[48px] transition-colors ${palette.iconBtn}`}
+            >
                 {isAuthenticated ? (
                   <span className="text-sm font-semibold">{userInitials}</span>
                 ) : (
@@ -221,24 +317,33 @@ export const SignatureHeader: React.FC = () => {
                 )}
               </button>
 
-              {userMenuOpen && (
-                <div className={`absolute right-0 mt-3 w-72 rounded-3xl border p-4 ${palette.panel}`}>
+              {userMenuVisible && (
+                <div className={`absolute right-0 mt-3 w-72 rounded-3xl border p-4 z-[200] transition-all duration-300 ease-out ${
+                  userMenuOpen
+                    ? 'opacity-100 scale-100 translate-y-0'
+                    : 'opacity-0 scale-95 -translate-y-2'
+                } ${palette.panel}`}>
                   {isAuthenticated ? (
                     <>
-                      <div className="mb-4">
-                        <p className="text-xs uppercase tracking-[0.3em] opacity-60">Академик</p>
-                        <p className="text-lg font-semibold">{user?.first_name || user?.username}</p>
-                        <p className="text-sm opacity-70">{user?.email}</p>
-                      </div>
-                      <div className="space-y-2">
+                      <Link href="/profile" className={`mb-4 block p-3 rounded-xl border transition-all duration-200 cursor-pointer group ${palette.menuItem} hover:scale-[1.02] hover:shadow-sm`}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.3em] opacity-60">Академик</p>
+                            <p className="text-lg font-semibold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{user?.profile?.first_name || user?.username}</p>
+                            <p className="text-sm opacity-70">{user?.email}</p>
+                          </div>
+                          <ChevronRight className="h-4 w-4 opacity-40 group-hover:opacity-70 group-hover:translate-x-0.5 transition-all duration-200" />
+                        </div>
+                      </Link>
+                      <div className="space-y-1">
                         {userShortcuts.map((item) => (
                           <Link
                             key={item.href}
                             href={item.href}
-                            className="flex items-center gap-3 px-3 py-2 rounded-2xl hover:bg-white/10 transition-colors"
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl border transition-all duration-200 ${palette.menuItem} hover:scale-[1.01] hover:shadow-sm`}
                           >
-                            <item.icon className="h-4 w-4" />
-                            {item.label}
+                            <item.icon className="h-4 w-4 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" />
+                            <span className="group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{item.label}</span>
                           </Link>
                         ))}
                         <button
@@ -246,10 +351,10 @@ export const SignatureHeader: React.FC = () => {
                             logout();
                             setUserMenuOpen(false);
                           }}
-                          className="flex items-center gap-3 px-3 py-2 rounded-2xl hover:bg-red-500/10 text-red-500 transition-colors w-full"
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-2xl border border-red-200/50 bg-red-50/50 dark:border-red-800/50 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-500/10 dark:hover:bg-red-500/20 hover:border-red-300/50 dark:hover:border-red-700/50 transition-all duration-200 w-full hover:scale-[1.01]"
                         >
                           <LogOut className="h-4 w-4" />
-                          Выйти
+                          <span>Выйти</span>
                         </button>
                       </div>
                     </>
@@ -280,7 +385,10 @@ export const SignatureHeader: React.FC = () => {
 
             <div ref={cartMenuRef} className="relative">
               <button
-                onClick={() => setCartMenuOpen((prev) => !prev)}
+                onClick={() => {
+                  setCartMenuOpen((prev) => !prev);
+                  setIsExpanded(false); // Закрываем главное меню при открытии корзины
+                }}
                 aria-label="Корзина"
                 className={`p-3 rounded-2xl relative transition-colors ${palette.iconBtn}`}
               >
@@ -292,8 +400,12 @@ export const SignatureHeader: React.FC = () => {
                 )}
               </button>
 
-              {cartMenuOpen && (
-                <div className={`absolute right-0 mt-3 w-[360px] rounded-3xl border overflow-hidden ${palette.panel}`}>
+              {cartMenuVisible && (
+                <div className={`absolute right-0 mt-3 w-[360px] rounded-3xl border overflow-hidden z-[200] transition-all duration-300 ease-out ${
+                  cartMenuOpen
+                    ? 'opacity-100 scale-100 translate-y-0'
+                    : 'opacity-0 scale-95 -translate-y-2'
+                } ${palette.panel}`}>
                   <MiniCart />
                 </div>
               )}
@@ -302,11 +414,15 @@ export const SignatureHeader: React.FC = () => {
         </div>
       </div>
 
-      {isExpanded && (
+      {menuVisible && (
         <div className="px-4 sm:px-6 lg:px-8">
           <div
             ref={menuPanelRef}
-            className={`mt-3 rounded-3xl border p-4 sm:p-5 backdrop-blur-2xl ${palette.panel}`}
+            className={`mt-3 rounded-3xl border p-4 sm:p-5 backdrop-blur-2xl z-[130] transition-all duration-300 ease-out ${
+              isExpanded
+                ? 'opacity-100 scale-100 translate-y-0'
+                : 'opacity-0 scale-95 -translate-y-2'
+            } ${palette.panel}`}
           >
             <div className="grid gap-4 lg:grid-cols-3">
               <section className="space-y-3">
@@ -352,11 +468,17 @@ export const SignatureHeader: React.FC = () => {
                   </div>
                 </form>
                 <div className="flex flex-wrap gap-2">
-                  {quickSearches.map((item) => (
+                  {suggestions.map((item) => (
                     <button
                       key={item}
                       type="button"
-                      onClick={() => setSearchValue(item)}
+                      onClick={() => {
+                        setSearchValue(item);
+                        // Если кликаем по тегу, сразу переходим к поиску
+                        router.push(`/products?search=${encodeURIComponent(item)}`);
+                        setIsExpanded(false);
+                        setIsSearchOverlayOpen(false);
+                      }}
                       className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${palette.menuItem}`}
                     >
                       {item}
@@ -421,13 +543,15 @@ export const SignatureHeader: React.FC = () => {
               </div>
             </form>
             <div className="mt-4 flex flex-wrap gap-2">
-              {quickSearches.map((item) => (
+              {suggestions.map((item) => (
                 <button
                   key={item}
                   type="button"
                   onClick={() => {
                     setSearchValue(item);
-                    overlaySearchRef.current?.focus();
+                    router.push(`/products?search=${encodeURIComponent(item)}`);
+                    setIsExpanded(false);
+                    setIsSearchOverlayOpen(false);
                   }}
                   className="px-3 py-1.5 rounded-full bg-secondary text-xs"
                 >

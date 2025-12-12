@@ -5,6 +5,8 @@ export const normalizeProductPayload = (payload: any): Perfume | null => {
   return {
     id: payload.id,
     name: payload.name,
+    slug: payload.slug,
+    sku: payload.sku,
     description: payload.description || '',
     brand: {
       id: payload.brand?.id ?? 0,
@@ -21,6 +23,13 @@ export const normalizeProductPayload = (payload: any): Perfume | null => {
     },
     gender: payload.gender || 'U',
     price: payload.price?.toString() ?? '0',
+    final_price: payload.final_price ?? payload.discount_price ?? payload.price ?? 0,
+    discount_percentage: payload.discount_percentage ?? 0,
+    discount_price: payload.discount_price ?? null,
+    discount_start_date: payload.discount_start_date ?? null,
+    discount_end_date: payload.discount_end_date ?? null,
+    is_on_sale: payload.is_on_sale ?? false,
+    discount_percent_display: payload.discount_percent_display ?? 0,
     volume_ml: payload.volume_ml ?? 0,
     concentration: payload.concentration || '',
     top_notes: payload.top_notes || '',
