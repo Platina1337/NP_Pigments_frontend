@@ -197,7 +197,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
  * Легаси-версия страницы. Оставлена по просьбе заказчика для обратной совместимости.
  * Используйте LegacyProductPageView(product) при необходимости откатиться к предыдущему UI.
  */
-export function LegacyProductPageView({ product }: { product: Product }) {
+function LegacyProductPageView({ product }: { product: Product }) {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
