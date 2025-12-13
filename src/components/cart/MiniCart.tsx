@@ -81,6 +81,7 @@ export const MiniCart: React.FC = () => {
                       <button
                         aria-label="Увеличить количество"
                         className="h-7 w-7 rounded-md border border-border flex items-center justify-center hover:bg-primary/10 transition-colors"
+                        disabled={item.quantity >= item.perfume.stock_quantity}
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
                       >
                         <Plus className="h-4 w-4" />

@@ -189,9 +189,27 @@ export default function CheckoutPage() {
 
       if (paymentResponse?.data) {
         // Перенаправляем на страницу оплаты
-        const paymentUrl = (paymentResponse.data as {confirmation_url?: string; payment_url?: string}).confirmation_url || (paymentResponse.data as {confirmation_url?: string; payment_url?: string}).payment_url
+        const paymentUrl =
+          (paymentResponse.data as { confirmation_url?: string; payment_url?: string; payment_id?: string }).confirmation_url ||
+          (paymentResponse.data as { confirmation_url?: string; payment_url?: string; payment_id?: string }).payment_url
+        const paymentId = (paymentResponse.data as { payment_id?: string }).payment_id
+
+        if (paymentId) {
+          localStorage.setItem(
+            'last_payment',
+            JSON.stringify({
+              orderId,
+              paymentId,
+              method: paymentMethod,
+              createdAt: Date.now(),
+            })
+          )
+        }
+
         if (paymentUrl) {
           window.location.href = paymentUrl
+        } else {
+          throw new Error('Не удалось получить ссылку на оплату')
         }
       } else {
         throw new Error('Ошибка создания платежа')

@@ -100,7 +100,8 @@ export const CartItemComponent: React.FC<CartItemProps> = ({
             variant="secondary"
             size="sm"
             onClick={() => handleQuantityChange(quantity + 1)}
-            className="h-8 w-8 rounded-lg hover:bg-primary hover:text-primary-foreground transition-all duration-200 !p-0"
+            disabled={quantity >= perfume.stock_quantity}
+            className="h-8 w-8 rounded-lg hover:bg-primary hover:text-primary-foreground transition-all duration-200 !p-0 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="flex items-center justify-center w-full h-full">
               <Plus className="w-4 h-4" />

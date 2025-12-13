@@ -3,7 +3,7 @@ import type { AuthTokens } from '@/types/api'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
 
-type JwtPayload = { exp?: number; [key: string]: unknown }
+type JwtPayload = { exp?: number;[key: string]: unknown }
 
 const decodeJwt = (token: string): JwtPayload | null => {
   try {
@@ -314,12 +314,12 @@ export const api = {
   // Cart
   cart: {
     get: () => apiClient.get('/cart/'),
-    addItem: (data: { product_type: string; product_id: number; quantity?: number }) =>
+    addItem: (data: { product_type: string; product_id: number; quantity?: number; volume_option_id?: number; weight_option_id?: number }) =>
       apiClient.post('/cart-items/add_product/', data),
     updateItem: (id: number, quantity: number) =>
       apiClient.post(`/cart-items/${id}/update_quantity/`, { quantity }),
     removeItem: (id: number) => apiClient.delete(`/cart-items/${id}/`),
-    sync: (items: Array<{ product_type: string; product_id: number; quantity: number }>) =>
+    sync: (items: Array<{ product_type: string; product_id: number; quantity: number; volume_option_id?: number | null; weight_option_id?: number | null }>) =>
       apiClient.post('/cart/sync/', { items }),
   },
   products: {
@@ -397,7 +397,7 @@ export const api = {
       apiClient.post('/payments/yookassa/create/', { order_id: orderId }),
     checkYooKassaStatus: (paymentId: string) =>
       apiClient.get(`/payments/yookassa/status/${paymentId}/`),
-    
+
     // Tinkoff
     createTinkoffPayment: (orderId: number) =>
       apiClient.post('/payments/tinkoff/create/', { order_id: orderId }),

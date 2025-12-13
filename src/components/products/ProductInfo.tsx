@@ -80,9 +80,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({ product }) => {
     const normalized = normalizeProductForCart(product);
     const productType: 'perfume' | 'pigment' = isPerfume ? 'perfume' : 'pigment';
     // TODO: Pass selectedVolumeOptionId/selectedWeightOptionId to cart when cart is updated to support it
-    for (let i = 0; i < quantity; i++) {
-      addItem(normalized, productType);
-    }
+    addItem(normalized, productType, selectedVolumeOptionId, selectedWeightOptionId, quantity);
   };
 
 

@@ -80,7 +80,7 @@ export const ProductExperience: React.FC<ProductExperienceProps> = ({
   product,
   productType,
 }) => {
-  const { addItem } = useCart();
+  const { addItem, state } = useCart();
   const { isAuthenticated } = useAuth();
   const { theme } = useTheme();
   const { toggleFavorite: toggleFavoriteInContext, isFavorite: isFavoriteInContext } = useFavorites();
@@ -91,6 +91,7 @@ export const ProductExperience: React.FC<ProductExperienceProps> = ({
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [modalImageIndex, setModalImageIndex] = useState(0);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   // Volume/Weight option selection
   const [selectedVolumeOptionId, setSelectedVolumeOptionId] = useState<number | undefined>(undefined);
@@ -117,8 +118,8 @@ export const ProductExperience: React.FC<ProductExperienceProps> = ({
         discount_price:
           product.discount_price !== null && product.discount_price !== undefined
             ? (typeof product.discount_price === 'string'
-                ? parseFloat(product.discount_price)
-                : product.discount_price)
+              ? parseFloat(product.discount_price)
+              : product.discount_price)
             : null,
         stock_quantity: product.stock_quantity ?? 0,
         in_stock: product.in_stock,
@@ -225,11 +226,75 @@ export const ProductExperience: React.FC<ProductExperienceProps> = ({
       : selectedWeightOption?.in_stock) ?? product.in_stock;
 
   const availableQuantity = Math.max(variantStock, 0);
-  const maxQuantity = clamp(availableQuantity, 1, 10);
+
+  const cartItemsForProduct = useMemo(
+    () => state.items.filter((item) =>
+      item.perfume.id === product.id &&
+      item.productType === productType
+    ),
+    [product.id, productType, state.items]
+  );
+
+  // Подбираем вариант из корзины после перезагрузки страницы, чтобы не сбивалась выбранная фасовка
+  useEffect(() => {
+    if (!cartItemsForProduct.length) return;
+
+    if (isPerfumeProduct(product) && selectedVolumeOptionId === undefined) {
+      const itemWithVolume = cartItemsForProduct.find((item) => item.volumeOptionId !== undefined && item.volumeOptionId !== null);
+      if (itemWithVolume?.volumeOptionId !== undefined) {
+        setSelectedVolumeOptionId(itemWithVolume.volumeOptionId);
+      }
+    }
+
+    if (!isPerfumeProduct(product) && selectedWeightOptionId === undefined) {
+      const itemWithWeight = cartItemsForProduct.find((item) => item.weightOptionId !== undefined && item.weightOptionId !== null);
+      if (itemWithWeight?.weightOptionId !== undefined) {
+        setSelectedWeightOptionId(itemWithWeight.weightOptionId);
+      }
+    }
+  }, [cartItemsForProduct, product, selectedVolumeOptionId, selectedWeightOptionId]);
+
+  // Проверка текущего количества товара в корзине
+  const currentCartQuantity = useMemo(() => {
+    const selectedVolumeId = selectedVolumeOption?.id ?? selectedVolumeOptionId ?? null;
+    const selectedWeightId = selectedWeightOption?.id ?? selectedWeightOptionId ?? null;
+
+    return cartItemsForProduct
+      .filter((item) => {
+        if (isPerfumeProduct(product)) {
+          if (selectedVolumeId === null) return item.volumeOptionId == null;
+          if (selectedVolumeId === -1) return item.volumeOptionId == null || item.volumeOptionId === -1;
+          return item.volumeOptionId === selectedVolumeId;
+        }
+
+        if (selectedWeightId === null) return item.weightOptionId == null;
+        return item.weightOptionId === selectedWeightId;
+      })
+      .reduce((total, item) => total + item.quantity, 0);
+  }, [cartItemsForProduct, product, selectedVolumeOption?.id, selectedVolumeOptionId, selectedWeightOption?.id, selectedWeightOptionId]);
+
+  // Вычисляем доступное для добавления количество
+  const remainingQuantity = Math.max(0, availableQuantity - currentCartQuantity);
+  // Ограничиваем выбор: минимум 1, максимум 10, но не больше чем осталось
+  const maxQuantity = clamp(remainingQuantity, 1, 10);
+
+  const isAddToCartDisabled = !variantInStock || remainingQuantity === 0;
 
   useEffect(() => {
     // Уведомления очищаются автоматически через таймер
   }, []);
+
+  // Сброс количества при переключении варианта
+  useEffect(() => {
+    setQuantity(1);
+  }, [selectedVolumeOptionId, selectedWeightOptionId]);
+
+  // Корректировка количества, если оно превышает доступное (например, после добавления в корзину)
+  useEffect(() => {
+    if (quantity > maxQuantity) {
+      setQuantity(maxQuantity);
+    }
+  }, [maxQuantity, quantity]);
 
   useEffect(() => {
     if (!statusMessage) return;
@@ -259,9 +324,29 @@ export const ProductExperience: React.FC<ProductExperienceProps> = ({
     }
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!variantInStock) {
       setStatusMessage('Этот товар временно отсутствует');
+      return;
+    }
+
+    console.log('[ProductExperience] handleAddToCart', {
+      productId: product.id,
+      productType,
+      selectedVolumeOptionId: selectedVolumeOption?.id ?? selectedVolumeOptionId ?? null,
+      selectedWeightOptionId: selectedWeightOption?.id ?? selectedWeightOptionId ?? null,
+      availableQuantity,
+      currentCartQuantity,
+      remainingQuantity,
+    });
+
+    if (currentCartQuantity >= availableQuantity) {
+      setStatusMessage(`В корзине уже максимальное количество (${availableQuantity} шт.)`);
+      return;
+    }
+
+    if (quantity + currentCartQuantity > availableQuantity) {
+      setStatusMessage(`Нельзя добавить больше, чем есть на складе. Доступно: ${remainingQuantity} шт.`);
       return;
     }
 
@@ -302,11 +387,17 @@ export const ProductExperience: React.FC<ProductExperienceProps> = ({
     })();
 
     const normalized = normalizeProductForCart(productForCart);
-    for (let i = 0; i < quantity; i += 1) {
-      addItem(normalized, productType, selectedVolumeOption?.id, selectedWeightOption?.id);
-    }
 
-    setStatusMessage('Добавлено в корзину');
+    setIsAddingToCart(true);
+    try {
+      await addItem(normalized, productType, selectedVolumeOption?.id, selectedWeightOption?.id, quantity);
+      setStatusMessage('Добавлено в корзину');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      setStatusMessage('Ошибка при добавлении в корзину');
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
   const openImageModal = (imageIndex: number = activeImageIndex) => {
@@ -699,13 +790,12 @@ export const ProductExperience: React.FC<ProductExperienceProps> = ({
                           aria-pressed={isSelected}
                           onClick={() => setSelectedVolumeOptionId(option.id)}
                           disabled={!isAvailable}
-                          className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all ${
-                            isSelected
-                              ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-500/10 dark:text-emerald-200'
-                              : isAvailable
-                                ? 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:text-emerald-700 dark:border-white/10 dark:bg-transparent dark:text-white dark:hover:border-emerald-500/40'
-                                : 'border-slate-100 bg-slate-50 text-slate-400 opacity-60 cursor-not-allowed dark:border-white/5 dark:bg-white/5 dark:text-slate-500'
-                          }`}
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all ${isSelected
+                            ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-500/10 dark:text-emerald-200'
+                            : isAvailable
+                              ? 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:text-emerald-700 dark:border-white/10 dark:bg-transparent dark:text-white dark:hover:border-emerald-500/40'
+                              : 'border-slate-100 bg-slate-50 text-slate-400 opacity-60 cursor-not-allowed dark:border-white/5 dark:bg-white/5 dark:text-slate-500'
+                            }`}
                         >
                           {formatVolume(option.volume_ml)}
                         </button>
@@ -728,13 +818,12 @@ export const ProductExperience: React.FC<ProductExperienceProps> = ({
                             aria-pressed={isSelected}
                             onClick={() => setSelectedWeightOptionId(option.id)}
                             disabled={!isAvailable}
-                            className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all ${
-                              isSelected
-                                ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-500/10 dark:text-emerald-200'
-                                : isAvailable
-                                  ? 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:text-emerald-700 dark:border-white/10 dark:bg-transparent dark:text-white dark:hover:border-emerald-500/40'
-                                  : 'border-slate-100 bg-slate-50 text-slate-400 opacity-60 cursor-not-allowed dark:border-white/5 dark:bg-white/5 dark:text-slate-500'
-                            }`}
+                            className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all ${isSelected
+                              ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-500/10 dark:text-emerald-200'
+                              : isAvailable
+                                ? 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:text-emerald-700 dark:border-white/10 dark:bg-transparent dark:text-white dark:hover:border-emerald-500/40'
+                                : 'border-slate-100 bg-slate-50 text-slate-400 opacity-60 cursor-not-allowed dark:border-white/5 dark:bg-white/5 dark:text-slate-500'
+                              }`}
                           >
                             {formatWeight(option.weight_gr)}
                           </button>
@@ -750,7 +839,7 @@ export const ProductExperience: React.FC<ProductExperienceProps> = ({
               )}
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">
                 {variantInStock
-                  ? `В наличии ${availableQuantity} шт.`
+                  ? `В наличии ${Math.max(0, availableQuantity - currentCartQuantity)} шт.`
                   : 'Доступно под заказ'}
               </p>
 
@@ -784,7 +873,7 @@ export const ProductExperience: React.FC<ProductExperienceProps> = ({
                 </span>
                 <button
                   onClick={() => adjustQuantity('inc')}
-                  disabled={quantity >= maxQuantity}
+                  disabled={quantity >= maxQuantity || currentCartQuantity + quantity >= availableQuantity}
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-lg font-semibold text-slate-700 transition-all duration-300 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-40 dark:border-white/10 dark:text-white dark:hover:border-emerald-500/30 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300"
                   aria-label="Увеличить количество"
                 >
@@ -808,11 +897,15 @@ export const ProductExperience: React.FC<ProductExperienceProps> = ({
                 onClick={handleAddToCart}
                 className="w-full btn-with-icon bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-[0_20px_60px_rgba(16,185,129,0.4)] transition-all duration-300 hover:shadow-[0_25px_80px_rgba(16,185,129,0.5)] hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
                 size="lg"
-                disabled={!product.in_stock}
+                disabled={isAddToCartDisabled || isAddingToCart}
               >
                 <ShoppingBag className="h-5 w-5" />
                 <span className="font-semibold">
-                  {product.in_stock ? 'Добавить в корзину' : 'Сообщить о наличии'}
+                  {!variantInStock
+                    ? 'Сообщить о наличии'
+                    : currentCartQuantity >= availableQuantity
+                      ? `Максимум в корзине (${availableQuantity} шт.)`
+                      : 'Добавить в корзину'}
                 </span>
               </Button>
 

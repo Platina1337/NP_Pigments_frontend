@@ -300,3 +300,10 @@ export interface ProductImage {
   image: string;
   alt_text?: string;
 }
+
+// Payment types
+export interface PaymentResponse {
+  success: boolean;
+  payment_id: string;
+  confirmation_url: string;
+}

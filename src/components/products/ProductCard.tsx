@@ -28,9 +28,10 @@ const APPLICATION_LABELS: Record<string, string> = {
 interface ProductCardProps {
     product: CatalogProduct
     isRecent?: boolean
+    allowUnavailable?: boolean // Показывать товары без наличия (для каталога)
 }
 
-export function ProductCard({ product, isRecent }: ProductCardProps) {
+export function ProductCard({ product, isRecent, allowUnavailable = false }: ProductCardProps) {
     const { currentPrice, originalPrice, hasDiscount } = getPriceInfo(product)
     const { toggleFavorite, isFavorite } = useFavorites()
     const { addItem, state } = useCart()
@@ -45,6 +46,10 @@ export function ProductCard({ product, isRecent }: ProductCardProps) {
     const inCart = state.items.some(
         (item) => item.perfume.id === product.id && item.productType === product.productType
     )
+    const currentCartQuantity = state.items
+        .filter((item) => item.perfume.id === product.id && item.productType === product.productType)
+        .reduce((total, item) => total + item.quantity, 0)
+    const isUnavailable = !product.in_stock || currentCartQuantity >= product.stock_quantity
 
     const onToggleFavorite = async (event: React.MouseEvent) => {
         event.preventDefault()
@@ -202,21 +207,36 @@ export function ProductCard({ product, isRecent }: ProductCardProps) {
                             )}
                         </div>
                         <button
-                            aria-label={inCart || justAdded ? 'Уже в корзине' : 'Добавить в корзину'}
+                            aria-label={
+                                isUnavailable && !allowUnavailable
+                                    ? 'Товар временно недоступен'
+                                    : inCart || justAdded
+                                        ? 'Уже в корзине'
+                                        : 'Добавить в корзину'
+                            }
+                            disabled={isUnavailable}
                             className={clsx(
                                 'h-10 w-10 rounded-full text-white flex items-center justify-center transition-all duration-200 shadow-md',
-                                'bg-primary hover:bg-primary/90',
-                                adding ? 'opacity-80 scale-95' : 'hover:scale-105 active:scale-95'
+                                isUnavailable
+                                    ? 'bg-gray-400 cursor-not-allowed opacity-60'
+                                    : inCart || justAdded
+                                        ? 'bg-green-500 hover:bg-green-600 hover:scale-105 active:scale-95'
+                                        : 'bg-primary hover:bg-primary/90 hover:scale-105 active:scale-95',
+                                adding ? 'opacity-80 scale-95' : ''
                             )}
-                            onClick={(e) => {
+                            onClick={async (e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
                                 if (adding) return
                                 setAdding(true)
                                 try {
-                                    addItem(product as any, product.productType)
+                                    await addItem(product as any, product.productType, undefined, undefined, 1)
                                     setJustAdded(true)
                                     setTimeout(() => setJustAdded(false), 1200)
+                                } catch (error: any) {
+                                    console.error('Failed to add item to cart:', error)
+                                    // Можно добавить toast уведомление об ошибке
+                                    alert(error?.error || 'Не удалось добавить товар в корзину')
                                 } finally {
                                     setTimeout(() => setAdding(false), 200)
                                 }

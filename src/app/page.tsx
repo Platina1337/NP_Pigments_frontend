@@ -108,8 +108,12 @@ export default function Home() {
   }, [])
 
   const mapPromoProducts = useCallback((promo: any) => {
-    const perfumes = (promo.perfumes || []).map((p: any) => ({ ...p, productType: 'perfume' as const }))
-    const pigments = (promo.pigments || []).map((p: any) => ({ ...p, productType: 'pigment' as const }))
+    const perfumes = (promo.perfumes || [])
+      .filter((p: any) => p.in_stock) // Фильтруем только товары в наличии
+      .map((p: any) => ({ ...p, productType: 'perfume' as const }))
+    const pigments = (promo.pigments || [])
+      .filter((p: any) => p.in_stock) // Фильтруем только товары в наличии
+      .map((p: any) => ({ ...p, productType: 'pigment' as const }))
     return [...perfumes, ...pigments]
   }, [])
 
@@ -121,6 +125,7 @@ export default function Home() {
         return { ...item.product, productType: item.product_type }
       })
       .filter(Boolean)
+      .filter((product: any) => product.in_stock) // Фильтруем только товары в наличии
   }, [trending])
 
 
@@ -297,13 +302,16 @@ export default function Home() {
                             </button>
                             <button
                               aria-label="Добавить в корзину"
-                              onClick={(e) => {
+                              onClick={async (e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 if (addingId === product.id) return;
                                 setAddingId(product.id);
                                 try {
-                                  addItem(product, product.productType);
+                                  await addItem(product, product.productType);
+                                } catch (error: any) {
+                                  console.error('Failed to add item to cart:', error);
+                                  alert(error?.error || 'Не удалось добавить товар в корзину');
                                 } finally {
                                   setTimeout(() => setAddingId(null), 1000);
                                 }

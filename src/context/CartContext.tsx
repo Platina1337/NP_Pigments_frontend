@@ -9,22 +9,22 @@ import { getPriceInfo } from '@/lib/product-pricing';
 
 // Действия для reducer
 type CartAction =
-  | { type: 'ADD_ITEM'; payload: Perfume; volumeOptionId?: number; weightOptionId?: number }
+  | { type: 'ADD_ITEM'; payload: Perfume; volumeOptionId?: number; weightOptionId?: number; serverItemId?: number; quantity?: number }
   | { type: 'REMOVE_ITEM'; payload: string }
   | { type: 'UPDATE_QUANTITY'; payload: { id: string; quantity: number } }
   | { type: 'CLEAR_CART' }
   | { type: 'LOAD_CART'; payload: CartItem[] }
-  | { type: 'SYNC_PRICES'; payload: CartItem[] } // <-- Новое действие
-  | { type: 'SET_HYDRATED'; payload: boolean }; // Новое действие
+  | { type: 'SYNC_PRICES'; payload: CartItem[] }
+  | { type: 'SET_HYDRATED'; payload: boolean };
+
 const CART_STORAGE_KEY = 'perfume-cart';
-// Удаляем CART_HYDRATED_KEY, так как будем использовать состояние внутри редьюсера
 
 // Начальное состояние корзины
 const initialState: CartState = {
   items: [],
   total: 0,
   itemCount: 0,
-  isHydrated: false, // Изначально не гидратировано
+  isHydrated: false,
 };
 
 // Reducer для управления состоянием корзины
@@ -34,6 +34,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       const payloadType = (action.payload as any)?.product_type || 'perfume';
       const volumeOptionId = action.volumeOptionId;
       const weightOptionId = action.weightOptionId;
+      const serverItemId = action.serverItemId;
 
       // Create unique key that includes variant to allow same product with different volumes
       const variantKey = volumeOptionId ? `-vol${volumeOptionId}` : (weightOptionId ? `-wt${weightOptionId}` : '');
@@ -50,20 +51,41 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         // Увеличиваем количество существующего товара
         newItems = state.items.map(item =>
           item.id === existingItem.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: item.quantity + (action.quantity || 1) }
             : item
         );
       } else {
         // Добавляем новый товар
-        const newItem: CartItem = {
-          id: `${action.payload.id}${variantKey}-${Date.now()}`, // Уникальный ID для корзины
-          perfume: action.payload,
-          quantity: 1,
-          productType: payloadType,
-          volumeOptionId,
-          weightOptionId,
-        };
-        newItems = [...state.items, newItem];
+
+        // Safety check: Check if an item with this serverItemId already exists
+        // This prevents duplicate key errors if 'find' failed to match the product (e.g. due to type mismatch)
+        // but the server returned an existing ID.
+        let existingServerItem: CartItem | undefined;
+        if (serverItemId) {
+          existingServerItem = state.items.find(item => item.id === `srv-${serverItemId}`);
+        }
+
+        if (existingServerItem) {
+          console.log('Found existing item by server ID, updating quantity instead of adding duplicate:', serverItemId);
+          newItems = state.items.map(item =>
+            item.id === existingServerItem!.id
+              ? { ...item, quantity: item.quantity + (action.quantity || 1) }
+              : item
+          );
+        } else {
+          // Если есть serverItemId, используем его формат, иначе генерируем временный
+          const itemId = serverItemId ? `srv-${serverItemId}` : `${action.payload.id}${variantKey}-${Date.now()}`;
+
+          const newItem: CartItem = {
+            id: itemId,
+            perfume: action.payload,
+            quantity: action.quantity || 1,
+            productType: payloadType,
+            volumeOptionId,
+            weightOptionId,
+          };
+          newItems = [...state.items, newItem];
+        }
       }
 
       const total = calculateTotal(newItems);
@@ -120,7 +142,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         items: action.payload,
         total,
         itemCount,
-        isHydrated: true, // После загрузки корзины устанавливаем флаг
+        isHydrated: true,
       };
     }
 
@@ -131,8 +153,6 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       };
 
     case 'SYNC_PRICES': {
-      // Это действие обновляет товары в корзине свежими данными с сервера
-      // и пересчитывает итоги.
       const newItems = action.payload;
       const total = calculateTotal(newItems);
       const itemCount = calculateItemCount(newItems);
@@ -177,19 +197,28 @@ const getInitialCartState = (): CartState => {
   try {
     const savedCart = localStorage.getItem(CART_STORAGE_KEY);
     if (savedCart) {
-      const cartItems: CartItem[] = normalizeCartItems(JSON.parse(savedCart));
-      console.log('Initial load from localStorage:', cartItems.length, 'items');
+      let cartItems: CartItem[] = normalizeCartItems(JSON.parse(savedCart));
+
+      // Фильтруем товары, которых нет в наличии
+      cartItems = cartItems.filter(item => {
+        if (!item.perfume.in_stock) {
+          console.log('Filtering out unavailable product from local cart:', item.perfume.name);
+          return false;
+        }
+        return true;
+      });
+
+      console.log('Initial load from localStorage:', cartItems.length, 'items (after filtering unavailable)');
       return {
         items: cartItems,
         total: calculateTotal(cartItems),
         itemCount: calculateItemCount(cartItems),
-        isHydrated: true, // Указываем, что корзина уже гидратирована
+        isHydrated: true,
       };
     }
   } catch (error) {
     console.error('Error loading initial cart from localStorage:', error);
-    // Если произошла ошибка, возвращаем пустое начальное состояние
-    localStorage.removeItem(CART_STORAGE_KEY); // Очищаем некорректные данные
+    localStorage.removeItem(CART_STORAGE_KEY);
   }
   return initialState;
 };
@@ -199,11 +228,19 @@ const mapServerCartItems = (items: any[]): CartItem[] => {
     .map(item => {
       const productData = normalizeProductPayload(item.product_data);
       if (!productData) return null;
+
+      if (!productData.in_stock) {
+        console.log('Filtering out unavailable product from cart:', productData.name);
+        return null;
+      }
+
       return {
         id: `srv-${item.id}`,
         perfume: productData,
         quantity: item.quantity,
         productType: item.product_data?.product_type || 'perfume',
+        volumeOptionId: item.volume_option,
+        weightOptionId: item.weight_option,
       } as CartItem;
     })
     .filter(Boolean) as CartItem[];
@@ -213,9 +250,18 @@ const mergeCartCollections = (serverItems: CartItem[], localItems: CartItem[]): 
   const merged = new Map<string, CartItem>();
 
   const addItem = (item: CartItem, preserveId = false) => {
-    const key = `${item.productType}-${item.perfume.id}`;
+    // Create a unique key that includes variants
+    const variantKey = item.volumeOptionId
+      ? `-vol${item.volumeOptionId}`
+      : (item.weightOptionId ? `-wt${item.weightOptionId}` : '');
+    const key = `${item.productType}-${item.perfume.id}${variantKey}`;
+
     if (merged.has(key)) {
       const existing = merged.get(key)!;
+      // If we have a server item (usually processed first) and a local item,
+      // we might want to prioritize the server one or sum them.
+      // Current logic: sum quantities.
+      // Note: If serverItems are processed first, 'existing' is likely the server item.
       merged.set(key, { ...existing, quantity: existing.quantity + item.quantity });
     } else {
       merged.set(key, preserveId ? item : { ...item, id: `${key}-${Date.now()}` });
@@ -231,7 +277,7 @@ const mergeCartCollections = (serverItems: CartItem[], localItems: CartItem[]): 
 // Контекст
 interface CartContextType {
   state: CartState;
-  addItem: (perfume: Perfume, productType?: 'perfume' | 'pigment', volumeOptionId?: number, weightOptionId?: number) => void;
+  addItem: (perfume: Perfume, productType?: 'perfume' | 'pigment', volumeOptionId?: number, weightOptionId?: number, quantity?: number) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
@@ -245,12 +291,11 @@ interface CartProviderProps {
 }
 
 export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
-  // Инициализируем состояние с помощью функции getInitialCartState
   const [state, dispatch] = useReducer(cartReducer, getInitialCartState());
   const { isAuthenticated } = useAuth();
   const skipNextSyncRef = useRef(false);
   const latestItemsRef = useRef<CartItem[]>([]);
-  const prevIsAuthenticatedRef = useRef(isAuthenticated); // Добавляем useRef для отслеживания предыдущего значения
+  const prevIsAuthenticatedRef = useRef(isAuthenticated);
 
   useEffect(() => {
     latestItemsRef.current = state.items;
@@ -259,7 +304,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   // Эффект для синхронизации цен при загрузке
   useEffect(() => {
     const verifyCartPrices = async () => {
-      // Проверяем только если корзина гидратирована и содержит товары
       if (!state.isHydrated || state.items.length === 0) {
         return;
       }
@@ -303,7 +347,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           const serverProduct = priceMap.get(key);
 
           if (serverProduct) {
-            // Сравниваем final_price, так как он учитывает скидку
             if (item.perfume.final_price !== serverProduct.final_price) {
               console.log(`Price for ${item.perfume.name} changed. Old: ${item.perfume.final_price}, New: ${serverProduct.final_price}`);
               hasPriceChanged = true;
@@ -313,15 +356,11 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
               };
             }
           } else {
-            // Если товара больше нет на сервере, он будет удален
-            // (или можно оставить, но с пометкой "недоступен")
-            // Пока просто оставляем как есть, но можно добавить логику удаления
             console.warn(`Product ${key} not found on server during price sync.`);
           }
           return item;
         });
 
-        // Фильтруем некорректные позиции, чтобы удовлетворить тип CartItem[]
         const sanitizedItems = updatedItems.filter(item => item.perfume) as CartItem[];
 
         if (hasPriceChanged) {
@@ -337,27 +376,30 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     };
 
     verifyCartPrices();
-  }, [state.isHydrated]); // Запускаем проверку при гидратации корзины
+  }, [state.isHydrated]);
 
-
-  // Загрузка корзины из localStorage при монтировании (теперь только для гостей, если она еще не гидратирована)
+  // Загрузка корзины из localStorage при монтировании
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Если пользователь был авторизован, а теперь вышел, сбрасываем флаг гидратации
-    // Эта логика перенесена сюда и улучшена для предотвращения бесконечного цикла
     if (!isAuthenticated && prevIsAuthenticatedRef.current && state.isHydrated) {
       console.log('User logged out, resetting hydration state');
       dispatch({ type: 'SET_HYDRATED', payload: false });
     }
 
-    // Для гостей, если корзина не гидратирована, но есть в localStorage, загружаем
-    // Также загружаем, если пользователь вышел и корзина еще не гидратирована (prevIsAuthenticatedRef.current)
     if (!isAuthenticated && !state.isHydrated) {
       const savedCart = localStorage.getItem(CART_STORAGE_KEY);
       if (savedCart) {
         try {
-          const cartItems: CartItem[] = normalizeCartItems(JSON.parse(savedCart));
+          let cartItems: CartItem[] = normalizeCartItems(JSON.parse(savedCart));
+          cartItems = cartItems.filter(item => {
+            if (!item.perfume.in_stock) {
+              console.log('Filtering out unavailable product from guest cart:', item.perfume.name);
+              return false;
+            }
+            return true;
+          });
+
           dispatch({ type: 'LOAD_CART', payload: cartItems });
         } catch (error) {
           console.error('Error loading guest cart from localStorage (secondary attempt):', error);
@@ -366,33 +408,29 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       }
     }
 
-    // Обновляем prevIsAuthenticatedRef для следующего рендера
     prevIsAuthenticatedRef.current = isAuthenticated;
 
-  }, [isAuthenticated, state.isHydrated]); // Удаляем state.isHydrated из зависимостей, так как оно меняется внутри этого useEffect
+  }, [isAuthenticated, state.isHydrated]);
 
-  // Сохранение корзины в localStorage при изменении (только если не авторизована)
+  // Сохранение корзины в localStorage
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    // Сохраняем только если пользователь не авторизован
     if (!isAuthenticated) {
       console.log('Saving guest cart to localStorage:', state.items.length, 'items');
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items));
     } else {
       console.log('Skipping localStorage save - user is authenticated.');
     }
-  }, [state.items, isAuthenticated]); // Убрали state.isHydrated из зависимостей, так как оно не нужно для логики сохранения гостевой корзины
+  }, [state.items, isAuthenticated]);
 
-  // Загрузка корзины авторизованного пользователя с сервера при каждом монтировании
+  // Загрузка корзины авторизованного пользователя
   useEffect(() => {
     if (!isAuthenticated) {
-      // При выходе из системы, если корзина была гидратирована с сервера, мы очищаем локальное хранилище, чтобы оно не мешало гостевой корзине.
-      // Если же корзина была гостевой, то она будет сохранена, как обычно.
-      if (state.isHydrated) { // Только если корзина была гидратирована сервером (т.е. пользователь был авторизован)
+      if (state.isHydrated) {
         console.log('User logged out, clearing server-hydrated cart from localStorage.');
         localStorage.removeItem(CART_STORAGE_KEY);
       }
-      dispatch({ type: 'SET_HYDRATED', payload: false }); // Сбрасываем флаг при выходе
+      dispatch({ type: 'SET_HYDRATED', payload: false });
       return;
     }
 
@@ -405,7 +443,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         const serverItemsRaw = (response.data as any)?.items ?? [];
         const serverItems = mapServerCartItems(serverItemsRaw);
 
-        // Получаем локальную корзину гостя из localStorage
         const savedCart = localStorage.getItem(CART_STORAGE_KEY);
         let localItems: CartItem[] = [];
         if (savedCart) {
@@ -436,7 +473,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         }
 
         skipNextSyncRef.current = true;
-        dispatch({ type: 'LOAD_CART', payload: finalItems }); // LOAD_CART теперь устанавливает isHydrated в true
+        dispatch({ type: 'LOAD_CART', payload: finalItems });
 
         if (finalItems.length > serverItems.length) {
           console.log('Syncing merged cart to server');
@@ -444,24 +481,23 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
             product_type: item.productType,
             product_id: item.perfume.id,
             quantity: item.quantity,
+            volume_option_id: item.volumeOptionId ?? null,
+            weight_option_id: item.weightOptionId ?? null,
           }));
+          console.log('Payload for merged cart sync (with variants):', payload);
           await api.cart.sync(payload);
           console.log('Merged cart synced to server');
         }
 
-        // Очищаем localStorage от корзины гостя, так как теперь она синхронизирована и больше не нужна
         console.log('Clearing guest cart from localStorage after successful server sync for authenticated user.');
         localStorage.removeItem(CART_STORAGE_KEY);
 
         console.log('User cart loaded and merged successfully');
       } catch (error) {
         console.error('Не удалось загрузить корзину пользователя:', error);
-        // В случае ошибки пробуем загрузить из localStorage как fallback
-        // Но в данном случае, если это авторизованный пользователь, мы не должны полагаться на localStorage
-        // Вместо этого, можно просто загрузить пустую корзину или показать ошибку
         console.log('Fallback for authenticated user: clearing cart and resetting hydration state due to server error.');
-        dispatch({ type: 'LOAD_CART', payload: [] }); // Загружаем пустую корзину
-        localStorage.removeItem(CART_STORAGE_KEY); // Убедимся, что localStorage чист
+        dispatch({ type: 'LOAD_CART', payload: [] });
+        localStorage.removeItem(CART_STORAGE_KEY);
       }
     };
 
@@ -473,6 +509,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   }, [isAuthenticated]);
 
   // Синхронизация корзины с сервером при изменениях
+  const syncInProgressRef = useRef(false);
   useEffect(() => {
     if (!isAuthenticated) return;
     if (skipNextSyncRef.current) {
@@ -480,23 +517,32 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       return;
     }
 
-    // Теперь используем state.isHydrated
     if (!state.isHydrated) {
       console.log('Skipping sync - cart not yet hydrated from server (isAuthenticated)');
       return;
     }
 
+    if (syncInProgressRef.current) {
+      console.log('Skipping sync - another sync is already in progress');
+      return;
+    }
+
     const syncCart = async () => {
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      syncInProgressRef.current = true;
       try {
         const payload = state.items.map(item => ({
           product_type: item.productType,
           product_id: item.perfume.id,
           quantity: item.quantity,
+          volume_option_id: item.volumeOptionId ?? null,
+          weight_option_id: item.weightOptionId ?? null,
         }));
 
-        // Не отправляем пустой массив, если корзина была загружена с сервера
-        // Это предотвращает очистку корзины при обновлении страницы
-        if (payload.length === 0 && state.isHydrated) { // Используем state.isHydrated
+        console.log('Syncing cart changes payload with variants:', payload);
+
+        if (payload.length === 0 && state.isHydrated) {
           console.log('Skipping empty cart sync - cart was loaded from server');
           return;
         }
@@ -506,20 +552,58 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         console.log('Cart changes synced successfully');
       } catch (error) {
         console.error('Ошибка синхронизации корзины с сервером:', error);
+      } finally {
+        syncInProgressRef.current = false;
       }
     };
 
     syncCart();
-  }, [isAuthenticated, state.items, state.isHydrated]); // Добавляем state.isHydrated в зависимости
+  }, [isAuthenticated, state.items, state.isHydrated]);
 
-  const addItem = (perfume: Perfume, productType: 'perfume' | 'pigment' = 'perfume', volumeOptionId?: number, weightOptionId?: number) => {
-    console.log('Adding item to cart:', perfume.id, productType, 'volumeOptionId:', volumeOptionId);
-    const payload = { ...perfume, product_type: productType } as Perfume;
-    dispatch({ type: 'ADD_ITEM', payload, volumeOptionId, weightOptionId });
+  const addItem = async (perfume: Perfume, productType: 'perfume' | 'pigment' = 'perfume', volumeOptionId?: number, weightOptionId?: number, quantity: number = 1) => {
+    console.log('Adding item to cart:', perfume.id, perfume.name, productType, 'volumeOptionId:', volumeOptionId, 'quantity:', quantity, 'caller:', new Error().stack?.split('\n')[2]?.trim());
+
+    // Removed blocking check for existing item to allow quantity updates
+
+    try {
+      let serverItemId: number | undefined;
+      const volumeOptionForServer = volumeOptionId && volumeOptionId > 0 ? volumeOptionId : undefined;
+      const weightOptionForServer = weightOptionId && weightOptionId > 0 ? weightOptionId : undefined;
+
+      if (isAuthenticated) {
+        const serverPayload = {
+          product_type: productType,
+          product_id: perfume.id,
+          quantity: quantity,
+          volume_option_id: volumeOptionForServer ?? null,
+          weight_option_id: weightOptionForServer ?? null
+        };
+        console.log('Sending addItem payload to server:', serverPayload);
+        const response = await api.cart.addItem({
+          product_type: productType,
+          product_id: perfume.id,
+          quantity: quantity,
+          volume_option_id: volumeOptionForServer ?? undefined,
+          weight_option_id: weightOptionForServer ?? undefined
+        });
+
+        if (response.data && (response.data as any).id) {
+          serverItemId = (response.data as any).id;
+          console.log('Item added to server cart, received ID:', serverItemId);
+        }
+      }
+
+      const payload = { ...perfume, product_type: productType } as Perfume;
+      const clientVolumeOptionId = volumeOptionForServer ?? undefined;
+      const clientWeightOptionId = weightOptionForServer ?? undefined;
+      dispatch({ type: 'ADD_ITEM', payload, volumeOptionId: clientVolumeOptionId, weightOptionId: clientWeightOptionId, serverItemId, quantity });
+    } catch (error: any) {
+      console.error('Error adding item to cart:', error);
+      throw error;
+    }
   };
 
   const removeItem = async (id: string) => {
-    // Если ID начинается с 'srv-', это серверный элемент, нужно удалить через API
     if (id.startsWith('srv-')) {
       const serverId = id.replace('srv-', '');
       try {
@@ -528,11 +612,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         console.log('Item removed from server successfully');
       } catch (error) {
         console.error('Error removing item from server:', error);
-        // Даже если API вызов не удался, удаляем из локального состояния
       }
     }
 
-    // Всегда удаляем из локального состояния
     dispatch({ type: 'REMOVE_ITEM', payload: id });
   };
 
@@ -542,10 +624,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
   const clearCart = () => {
     dispatch({ type: 'CLEAR_CART' });
-    // При очистке корзины также очищаем localStorage
     if (typeof window !== 'undefined') {
       localStorage.removeItem(CART_STORAGE_KEY);
-      // Если пользователь не авторизован, сбрасываем флаг гидратации, так как корзина пуста
       if (!isAuthenticated) {
         dispatch({ type: 'SET_HYDRATED', payload: false });
       }
@@ -567,7 +647,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   );
 };
 
-// Хук для использования контекста корзины
 export const useCart = (): CartContextType => {
   const context = useContext(CartContext);
   if (!context) {

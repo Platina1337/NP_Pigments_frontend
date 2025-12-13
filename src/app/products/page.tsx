@@ -1531,6 +1531,7 @@ export default function ProductsPage() {
                     key={`${product.productType}-${product.id}`}
                     product={product}
                     isRecent={isRecentProduct(product)}
+                    allowUnavailable={true}
                   />
                 ))}
               </div>
